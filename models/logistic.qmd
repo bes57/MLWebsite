@@ -20,7 +20,7 @@ library(here)
 ```
 
 
-## Load the data
+## Loading the data
 
 ```{r}
 #| label: load-data
