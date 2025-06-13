@@ -1,0 +1,523 @@
+---
+title: "Kalshi Analysis 2025 (Updated May 31st)"
+author: "Benjamin Sherman"
+format:
+  html:
+    code-fold: true
+    code-summary: "Show code"
+    code-tools: true 
+    embed-resources: true
+
+knitr:
+  opts_chunk:        ########## set global options ############
+    collapse: true   # keep code from blocks together (if shown)
+    message: true    # show messages
+    warning: false    # show warnings
+    error: false      # show error messages
+    comment: ""      # don't show ## with printed output
+    dpi: 300         # image resolution (typically 300 for publication)
+    fig-width: 6.5   # figure width
+    fig-height: 4.0  # figure height
+    R.options:    
+      digits: 3    # round to three digits
+
+---
+## Introduction
+
+In 2025, I began trading on *Kalshi*, a prediction market platform where users can trade on the outcome of real-world events. This ranges from political results to sports results. Particularly from April onwards, I began putting a bit more thought into my trading strategies, and thus I thought it apt to journal this process (i.e. lessons, profitability, trends, and anything else of note.) This is meant to be more of a journal for fun with an emphasis on the results/narratives, not really a showcase of coding or anything scientific/professional (no stochastic calculus to be found here), so all of the code is hidden. If you're interested in the code, just click *"Show code"* above any result.
+
+## Basic Statistics
+
+#### *View below code to see library loading*
+```{r}
+#| label: library
+#install.packages("kableExtra")
+suppressPackageStartupMessages(library(tidymodels))
+tidymodels_prefer()
+suppressPackageStartupMessages(library(tidyverse))
+library(kableExtra)
+library(glue)
+library(rUM)
+library(rio)
+library(table1)
+library(knitr)
+library(gt)
+library(broom)
+library(conflicted)
+```
+#### *View below code to see dataset loading/cleaning*
+```{r}
+Kalshi25 <- read.csv("~/Downloads/MayKalshi.csv", stringsAsFactors = FALSE)
+
+scales::dollar_format()
+
+Kalshi25$Created_Clean <- gsub(" at ", " ", Kalshi25$Created)
+Kalshi25$Created_Clean <- gsub(" EST", "", Kalshi25$Created_Clean)
+
+Kalshi25$Created_Parsed <- parse_date_time(Kalshi25$Created_Clean, orders = "b d, Y I:Mp")
+
+Kalshi25$Month <- format(Kalshi25$Created_Parsed, "%B")
+Kalshi25$DayOfWeek <- weekdays(Kalshi25$Created_Parsed) 
+Kalshi25$Hour <- hour(Kalshi25$Created_Parsed)              
+
+month_levels <- month.name  # "January" to "December"
+day_levels <- c("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
+
+Kalshi25 <- Kalshi25 |> select(-Created)
+
+glimpse(Kalshi25)
+```
+
+
+For fun, let's start simple by looking at some straight numbers thus far. Nothing fancy. 
+
+#### Firstly, my profit in 2025:
+```{r}
+Kalshi25$Realized_Profit_Clean <- as.numeric(gsub("[\\$,]", "", Kalshi25$Realized_Profit))
+total_realized_profit <- sum(Kalshi25$Realized_Profit_Clean, na.rm = TRUE)
+
+
+data.frame(Total_Realized_Profit = dollar(total_realized_profit)) |>
+  kable(caption = "", align = "c") |>
+  kable_styling(full_width = FALSE)
+```
+
+Welp, the number isn't negative. That's always a good start. Given that I started with $200, I'm proud of this.
+
+#### How about the amount of money I've lost in 2025 to fees?
+
+```{r}
+Kalshi25$Fees_Clean <- as.numeric(gsub("[\\$,]", "", Kalshi25$Fees))
+total_fees <- sum(Kalshi25$Fees_Clean, na.rm = TRUE)
+
+data.frame(Total_Fees = dollar(total_fees)) %>%
+  kable(caption = "", align = "c") %>%
+  kable_styling(full_width = FALSE)
+```
+
+Holy shit. This is surprising. The profit figure above already takes fees into account, but still. It's clear that these minimal fees have built up for me over time, but it also shows how *Kalshi* remains profitable. 
+
+As a conservative estimate, let's assume there are 5,000 traders who are more trading in higher volume than me (it's probably higher.) This means there are 5,000 traders who likely have paid more in fees. Again, let's be conservative and assume the average person in this group pays about \$3,000 in fees (I know a few people with higher volume than myself who have paid five-figure amounts in fees, so I'm confident that this is conservative.) That would suggest $15,000,000 in revenue for Kalshi so far in 2025, and that's just from the population of traders who have greater order flow than myself. Damn.   
+
+Of course, this isn't very scientific; 5,000 was a guesstimate and I'm also assuming everyone else is paying fees at the same rate. The funny thing is that I actually believe I'm paying fees at a smaller rate than others. My market making/arbitrage strategies are almost all based on resting orders as opposed to immediately clearing orders, and resting orders incur fewer fees than clearing orders. AND we're not accounting for the *LARGE* majority of traders that are trading in smaller volume than me. That would suggest that Kalshi's total revenue in 2025 is a much, much higher number, but I digress. 
+
+Another quick sidepoint: this helps makes sense as to why the Kalshi team is so responsive. I've submitted a few tickets to customer support and they always surprised me with how quickly they responded. If 5,000 people are generating them 8-figures in fees, then it makes sense that they would coddle, encourage, and care for them as much as possible. Besides, the people who care enough to submit tickets and complain are usually high-volume traders. 
+
+#### Now, let's look at some basic statistics. How about some frequencies? More specifically, the frequency with which I'm trading. Each number below represents the total count of trades completed.
+
+```{r}
+Kalshi25$Month <- factor(Kalshi25$Month, 
+                         levels = month.name, ordered = TRUE)
+
+month_counts <- table(Kalshi25$Month)
+
+
+month_counts |>
+  as.data.frame() |>
+  setNames(c("Month", "Count")) |>
+  gt() |>
+  tab_header(
+    title = "Trades by Month"
+  )
+
+Kalshi25$DayOfWeek <- factor(Kalshi25$DayOfWeek, 
+                             levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"), 
+                             ordered = TRUE)
+
+day_counts <- table(Kalshi25$DayOfWeek)
+
+day_counts |>
+  as.data.frame() |>
+  setNames(c("Day", "Count")) |>
+  gt() |>
+  tab_header(
+    title = "Trades by Day"
+  )
+```
+
+I already knew this, but the increasing rate with which I'm trading recently is exceptional. I traded more in May than in the four months prior combined (3730 vs 6909.)
+
+Also, regarding weekly trends, I view my Kalshi trading rate as having a direct association with how much free time and energy I have that day. Higher trading on weekends as well as Mondays being slow suggest this theory.  
+
+As for the profitability of these different times, there will be discussions of that later on.
+
+Anyway, raw numbers are fine, but graphs are better. 
+
+## Basic Graphs
+
+#### Let's use a graph to look at the frequency of trading "yes" vs "no" contracts.
+
+```{r}
+ggplot(Kalshi25, aes(x = Direction)) +
+  geom_bar(fill = "darkblue", alpha = 0.7, width = 0.6) +
+  geom_text(
+    stat = "count", 
+    aes(label = after_stat(count)), 
+    vjust = -0.5, 
+    size = 5, 
+    family = "Courier",
+    color = "black"
+  ) +
+  labs(
+    title = "Number of Trades by Direction",
+    x = "Direction",
+    y = "Count"
+  ) +
+  expand_limits(y = max(table(Kalshi25$Direction)) * 1.1) +
+  theme_minimal(base_size = 15, base_family = "Courier") +
+  theme(
+    plot.background = element_rect(fill = "#FFFFFF", color = NA),
+    panel.background = element_rect(fill = "#FFFFFF", color = NA),
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.title = element_text(face = "bold"),
+    axis.text = element_text(color = "black"),
+    panel.grid.major.x = element_blank()
+  )
+
+```
+
+  It should be surprising that I trade "No" contracts more than "Yes." "Yes" is usually the more intuitive/easier option. I mean, if you ask John Doe whether  he thinks the Thunder or Pacers will win the NBA championship, he doesn't respond with "The Pacers won't win." He says "The Thunder will win."  
+  
+  However, there's a reason for this. When I build arbitrages, I tend to build them with "No" orders since "No" orders tend to clear faster. This is because buying the "No" is the same as selling the "Yes", and people will buy your "Yes" contracts more than the "No" by the aforementioned logic on "Yes" being intuitive.
+
+
+#### Still, what about actually important information, like trends regarding profitability?
+
+```{r}
+ggplot(Kalshi25, aes(x = Created_Parsed, y = Realized_Profit_Clean)) +
+  geom_hline(yintercept = 0, color = "gray30", linetype = "dashed", linewidth = 0.7) +
+  geom_point(alpha = 0.6, color = "darkblue", size = 2) +
+  scale_y_continuous(labels = dollar_format()) +
+  labs(
+    title = "Realized Profit by Invidual Trades Over Time",
+    x = "Date",
+    y = "Realized Profit"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.title = element_text(face = "bold"),
+    axis.text = element_text(color = "black"),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80"),
+    panel.grid.major.y = element_line(color = "gray80")
+  )
+```
+
+Well, it's hard to understand much from this. It's too zoomed out. It seems to be caused by that massive increase in spread around late May! What's up with that? Well, in late May, I started building aribtrages on the baseball markets. This leads to misleading numbers, since it's counting both the $1,000 loss and $1,050 profit as individual trades (these are placeholder numbers that are realistic examples of volume/profit.) As proof, look at the following list of my five largest profits and the five largest losses.  
+
+```{r}
+cleaned_df <- Kalshi25[!is.na(Kalshi25$Realized_Profit_Clean), ]
+
+top_wins <- cleaned_df %>% 
+  arrange(desc(Realized_Profit_Clean)) %>%
+  slice_head(n = 5)
+
+top_losses <- cleaned_df %>% 
+  arrange(Realized_Profit_Clean) %>%
+  slice_head(n = 5)
+
+biggest_outliers <- bind_rows(top_wins, top_losses)
+
+# Format for output
+biggest_outliers %>%
+  select(Date = Created_Parsed, Profit = Realized_Profit_Clean, Ticker) %>%
+  mutate(
+    Date = format(Date, "%b %d, %Y %I:%M %p"),
+    Profit = dollar(Profit)
+  ) %>%
+  kable(caption = "Top 5 Gains and Losses by Trade", align = "c") %>%
+  kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover", "condensed"))
+
+```
+<br>
+  See how I made $1,108 on the Dodgers/Mets game on May 23rd, but lost $1,042 on that same game? I find this misleading and worry it will skew results/visualizations. It would be more accurate to portray these two trades as one (in this case, that means having one data point for the "KXMLBGAME-25MAY23LADNYM" ticker with a profit of $66.) So, let's do that; let's mutate the data.  
+  
+#### *Click below to view mutation steps taken*
+```{r}
+# Baseball Arbitrages
+baseball_df <- Kalshi25 %>%
+  filter(str_starts(Ticker, "KXMLBGAME")) %>%
+  filter(!is.na(Realized_Profit_Clean)) %>%
+  mutate(
+    GameID = str_replace(Ticker, "-[^-]+$", ""),
+    Contracts = as.numeric(Contracts)  # Ensure numeric within pipeline
+  )
+
+baseball_collapsed <- baseball_df %>%
+  group_by(GameID) %>%
+  summarise(
+    Ticker = first(GameID),
+    Realized_Profit_Clean = sum(Realized_Profit_Clean, na.rm = TRUE),
+    Contracts = sum(Contracts, na.rm = TRUE),
+    Created_Parsed = min(Created_Parsed, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+non_baseball_df <- Kalshi25 %>%
+  filter(!str_starts(Ticker, "KXMLBGAME"))
+
+Kalshi25_arb <- bind_rows(
+  non_baseball_df,
+  baseball_collapsed
+) %>%
+  arrange(Created_Parsed)
+
+# WNBA Arbitrages
+womensbball <- Kalshi25_arb %>%
+  filter(str_starts(Ticker, "KXWNBAGAME")) %>%
+  filter(!is.na(Realized_Profit_Clean)) %>%
+  mutate(
+    GameID = str_replace(Ticker, "-[^-]+$", ""),
+    Contracts = as.numeric(Contracts)
+  )
+
+womensbball_collapsed <- womensbball %>%
+  group_by(GameID) %>%
+  summarise(
+    Ticker = first(GameID),
+    Realized_Profit_Clean = sum(Realized_Profit_Clean, na.rm = TRUE),
+    Contracts = sum(Contracts, na.rm = TRUE),
+    Created_Parsed = min(Created_Parsed, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+non_womensbball <- Kalshi25_arb %>%
+  filter(!str_starts(Ticker, "KXWNBAGAME"))
+
+Kalshi25_arb <- bind_rows(
+  non_womensbball,
+  womensbball_collapsed
+) %>%
+  arrange(Created_Parsed)
+```
+
+  
+#### Alright, take two. Let's look at the biggest losses and wins now that we've accounted for arbitrages.
+```{r}
+top_wins_no_arb <- Kalshi25_arb |>
+  arrange(desc(Realized_Profit_Clean)) |>
+  slice_head(n = 5)
+
+top_losses_no_arb <- Kalshi25_arb |>
+  arrange(Realized_Profit_Clean) |>
+  slice_head(n = 5)
+
+biggest_outliers_no_arb <- bind_rows(top_wins_no_arb, top_losses_no_arb)
+
+biggest_outliers_no_arb |>
+  select(Date = Created_Parsed, Profit = Realized_Profit_Clean, Ticker) %>%
+  mutate(
+    Date = format(Date, "%b %d, %Y %I:%M %p"),
+    Profit = dollar(Profit)
+  ) %>%
+  kable(caption = "Top 5 Gains and Losses by Trade With Arbitrages Combined", align = "c") %>%
+  kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover", "condensed"))
+
+```
+<br>
+Ok! We're back in buisness. As a quick disclaimer, the "ticker" variable is the ID for the market that the trade took place in. I know the "ticker" ID can be difficult to understand without context, but I can use them to recall what these trades were.
+
+Notably, my second-most-profitable trade was on the South Korean presidency market, for \$181, on Mar 21. Not to be outdone, I quickly lost \$286 two weeks later on the same market on Apr 04. Impressive.
+
+It's cool to see how the largest profits and losses come from markets where I would wait for resolution, as opposed to trading up and down. It makes sense. For example, sports markets are heavily botted and very efficient (i.e. impossible to market-make on) so I would just buy a position and hold (what's that, gambling?) This is evidenced by 2 of the 5 most profitable trades being in basketball markets.
+
+Lastly, my largest win came from a market with the ticker "KXGRAMBCS-67-TA". After phoning a friend, I recalled that this was from the Grammy market. Funny enough, my largest win comes from a really boring and unimpressive strategy. All I did here was read a Rolling Stone's article predicting the Grammy winners and see that one of their predicted winners (The Architect for Country Song of the Year) was only given 4% odds. I trust Rolling Stones more than the Kalshi masses when it comes to the Grammys, so I threw \$11 on it. From that, we get the \$268 profit. Below is my Kalshi-generated receipt.
+
+```{r, echo=FALSE, fig.align="center"}
+knitr::include_graphics(here::here("img", "CountryKalshi.png"))
+```
+
+There are stories behind each of these trades (one would imagine so, each of these numbers are a lot of money to lose/gain) but I won't bore you. 
+
+#### Now that we've combined arbitrages and discussed outliers, let's move on past the outliers and zoom in on the scatterplot.
+
+```{r}
+filtered_df <- Kalshi25_arb %>%
+  filter(Created_Parsed >= as.POSIXct("2025-02-01"))
+
+ggplot(filtered_df, aes(x = Created_Parsed, y = Realized_Profit_Clean)) +
+  geom_hline(yintercept = 0, color = "gray30", linetype = "dashed", linewidth = 0.7) +
+  geom_point(alpha = 0.6, color = "darkblue", size = 2) +
+  scale_y_continuous(labels = dollar_format()) +
+  coord_cartesian(ylim = c(-10, 10)) +
+  labs(
+    title = "Zoomed-In Profit by Invidual Trades Over Time",
+    x = "Date",
+    y = "Realized Profit"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.title = element_text(face = "bold"),
+    axis.text = element_text(color = "black"),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80"),
+    panel.grid.major.y = element_line(color = "gray80")
+  )
+```
+
+Much better than the previous scatterplot. The first thing that jumps out to me is how clustered these trades are. These vertical columns of trades exemplify how heavily I relied on random profitable markets that would pop up and then go away. I wasn't doing daily, consistent trading, as much as I was sporadic. For example, these columns in late March are different March Madness games that I found profitable (and correctly so, as shown by the columns being largely above the \$0 line.)
+
+Other things:  
+
+1. Again, increased trading as time goes on.  
+
+2. **Soooooo** many trades were net-neutral. The central axis is basically blue because of how many dots are consistently layered over one another.
+
+What about looking at my best/worst markets?
+
+## Market Trends
+
+**1. Markets organized by my highest trade quantity.**
+
+```{r}
+Kalshi25_arb |>
+  filter(!is.na(Ticker), !is.na(Realized_Profit_Clean)) |>
+  group_by(Ticker) |>
+  summarize(
+    Trades = n(),
+    Total_Profit = sum(Realized_Profit_Clean),
+    Avg_Profit_Per_Trade = mean(Realized_Profit_Clean)
+  ) |>
+  arrange(desc(Trades)) |>
+  slice_head(n = 10) |>
+  kable(digits = 2, format = "markdown", caption = "Trade Summary by Quantity")
+```
+  
+<br>
+**2. Markets organized by highest profit.**
+
+```{r}
+Kalshi25_arb |>
+  filter(!is.na(Ticker), !is.na(Realized_Profit_Clean)) |>
+  group_by(Ticker) |>
+  summarize(
+    Trades = n(),
+    Total_Profit = sum(Realized_Profit_Clean),
+    Avg_Profit_Per_Trade = mean(Realized_Profit_Clean)
+  ) |>
+  arrange(desc(Total_Profit)) |>
+  slice_head(n = 10) |>
+  kable(digits = 2, format = "markdown", caption = "Trade Summary by Net Profit")
+```
+<br>
+Between the two lists, there's a clear winner here: the Masters market. 1st in total profit (\$617 if you combine the two sub-markets) and 1st in quantity of trades. This is made more impressive by the fact that I only traded on the Masters market for one day (and what a great day that was.)
+
+Now I have something else I'd like to test. I only gamble (casting a singular trade and holding until market resolution) when I believe I have significant edge over the given odds - when I believe a market is mispriced. However, is this true?  
+
+#### Let's see what my profit looks like in markets where I only did a singular trade.
+
+
+```{r}
+Kalshi25_arb |>
+  filter(!is.na(Ticker)) |>
+  group_by(Ticker) |>
+  mutate(Trades = n()) |>
+  ungroup() |>
+  filter(Trades == 1) |>
+  summarize(
+    Avg_Profit_Single_Trade = mean(Realized_Profit_Clean)
+  ) |>
+  kable(digits = 2, caption = "Average Profit for Gambles", align = "c") |>
+  kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+Since my gambles are (on average) profitable and (supposedly) thought-through, can I still be classified as a degenerate gambler? Yes, yes I can. 
+
+**Sidenote: There are two caveats to this statistic.** <br>
+
+1.  There are some "gambles" (previously defined as buying a position and holding) that aren't included in this calculation. This is because I filtered for markets where I only did a single trade. Not every "gamble" is captured this way. For example, I may have bought multiple "gambles" in a market, which would make it register as having had multiple trades. However, I don't have a way of discerning which multi-trade markets are purely gambling vs. trading, so I went with only the markets where I was 100% sure of being gambles. In other words, all single-trade markets are gambles, but not all gambles are single-trade markets. <br>
+
+2.  Partly caused by the above phenomenon, I have a mildly low sample size (158). This makes me less certain that I'm profitable with gambles.
+
+#### Moving on, let's look at *when* I have done my best and my worst trading.
+
+
+```{r}
+Kalshi25_arb$DayOfWeek <- factor(Kalshi25_arb$DayOfWeek, ordered = FALSE)
+Kalshi25_arb <- Kalshi25_arb |>
+  mutate(
+    TimeOfDay = case_when(
+      Hour %in% c(8:12) ~ "Morning",
+      Hour %in% c(13:17) ~ "Afternoon",
+      Hour %in% c(18:20) ~ "Evening",
+      Hour %in% c(21, 22, 23, 0) ~ "Night",
+      Hour %in% c(1:7) ~ "Too-Late",
+    ),
+    TimeOfDay = fct_relevel(TimeOfDay, "Morning", "Afternoon", "Evening", "Night", "Too-Late")
+  )
+
+model_profit_time <- lm(Average_Price ~ 0 + TimeOfDay, data = Kalshi25_arb)
+model_profit_day <- lm(Average_Price ~ 0 + DayOfWeek, data = Kalshi25_arb)
+model_profit_timeday <- lm(Average_Price ~ 0 + TimeOfDay * DayOfWeek, data = Kalshi25_arb)
+
+tidy_time <- broom::tidy(model_profit_time)
+tidy_day <- broom::tidy(model_profit_day)
+tidy_timeday <- broom::tidy(model_profit_timeday)
+
+tidy_time |>
+  mutate(term = str_replace(term, "TimeOfDay", "")) |>
+  arrange(desc(estimate)) |>
+  kable(digits = 2, caption = "Effect of Time of Day on Average Price", align = "c") |>
+  kable_styling(full_width = FALSE)
+
+tidy_day |>
+  mutate(term = str_replace(term, "DayOfWeek", "")) |>
+  arrange(desc(estimate)) |>
+  kable(digits = 2, caption = "Effect of Day of Week on Average Price", align = "c") |>
+  kable_styling(full_width = FALSE)
+```
+<br>
+Using the following time groupings:
+
+1.  8am - noon = "Morning"
+
+2.  1pm - 5pm = "Afternoon"
+
+3.  6pm - 8pm = "Evening"
+
+4.  9pm - midnight = "Night"
+
+5.  1am - 7am = "Too-Late" (affectionately)
+
+I constructed a linear model to predict the profitability of a trading session on an individual market (irrespective of quantity of contracts) based on time of day, day of the week, and both. The winners and losers?
+
+ - The most historically profitable day: Thursday, with average profit being \$54.15\  
+
+ - The least historically profitable day: Monday, with average profit being \$38.39
+
+ - The most historically profitable time of day: Afternoon, with average profit being \$49.79\ 
+
+ - The least historically profitable time of day: "TooLate", with average profit being \$42.69 (Looks like late-night trading hasn't treated me well.)
+
+Now, it's important to note that this is not necessarily advice as to when I should be trading. Any junior statistician should be able to differentiate between association and causation. Different opportunities are based in different times of day, as well as the fact that I trade at different volumes depending on the opportunities, which skews this result. This is merely a breakdown to understand when my money has been made and lost over the past four months.
+
+While Thursday is historically the most profitable day and Afternoon is historically the most profitable time of day, this doesn't necessarily mean that Thursday afternoon is historically the most profitable combination.  
+
+#### Let's look at the interaction between the time of day and the day of the week in relation to profit.
+
+```{r}
+tidy_timeday |>
+  filter(str_detect(term, "TimeOfDay") & str_detect(term, "DayOfWeek")) |>
+  mutate(
+    TimeOfDay = str_extract(term, "TimeOfDay\\w+"),
+    DayOfWeek = str_extract(term, "DayOfWeek\\w+"),
+    TimeOfDay = str_remove(TimeOfDay, "TimeOfDay"),
+    DayOfWeek = str_remove(DayOfWeek, "DayOfWeek")
+  ) |>
+  select(TimeOfDay, DayOfWeek, estimate, std.error, p.value) |>
+  arrange(desc(estimate)) |>
+  kable(
+    digits = 2,
+    caption = "Most Profitable Time × Day Combinations (Average Price)",
+    align = "c"
+  ) |>
+  kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover", "condensed"))
+```
+<br>
+I'm proven correct! The most profitable combination is Saturday afternoon, not Thursday afternoon. I also find it funny that the most and least profitable combination both involve trading when it's "toolate". The moral of the story seems to be I shouldn't trade late at night on Tuesday. 
+
+Also, the spread of historical profit is pretty impressive, I didn't think that there would be this much variance in my historical profitability based on *when* I'm trading, but that's why I made this journal. To discover curiosities like that. 
+<br>
+Well, that's all for now. I need to go lose \$4,819.

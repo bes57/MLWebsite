@@ -1,0 +1,41 @@
+project:
+  type: website
+  output-dir: docs
+  resources:
+    - R/
+    - data/
+
+website:
+  title: "Machine Learning Notes"
+  navbar:
+    left:
+      - href: index.qmd
+        text: Home
+      - href: about.qmd
+        text: About
+      - text: YRBS Models
+        menu:
+          - href: models/datasets.qmd
+            text: Data and Research Question
+          - href: models/logistic.qmd
+            text: Logistic Regression
+          - href: models/lasso.qmd
+            text: Lasso Regression
+          - href: models/trees.qmd
+            text: Decision Trees
+          - href: models/random_forest.qmd
+            text: Random Forest
+      - text: Trading
+        menu:
+          - href: Kalshi/KalshiUpToMay.qmd
+            text: Trading (May)
+
+
+
+format:
+  html:
+    theme: minty
+    css: styles.css
+    toc: true
+
+

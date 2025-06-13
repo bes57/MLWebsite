@@ -1,0 +1,247 @@
+---
+title: "Classification Tree"
+format: html
+---
+
+## Model Overview
+
+Decision tree is a predictive modeling technique that uses a tree-like structure to split data based on feature values. It can be used for both classification and regression tasks. The model uses machine learning to recursively partition the dataset into subsets based on the variable that best separates the data at each step, resulting in a hierarchy of decision rules.
+
+
+## Library
+
+```{r}
+#| include: true
+#| output: false
+library(tidymodels)
+library(tidyverse)
+library(here)
+library(rpart)
+```
+
+## Data
+
+```{r}
+#| label: data
+
+analysis_train <- readRDS(here("models", "data", "analysis_train.rds"))
+analysis_fold <- readRDS(here("models", "data", "analysis_folds.rds"))
+```
+
+
+## Recipe  
+
+As before, the data was preprocessed using a recipe that:
+
+ - Imputes missing values in categorical variables using the mode
+
+ - Imputes missing values in numeric variables using the mean
+ 
+```{r}
+#| label: recipe
+
+carry_weapon_recipe_tree <-
+  recipe(WeaponCarryingSchool ~., data = analysis_train) |>
+  step_impute_mean(all_numeric_predictors()) |>
+  step_impute_mode(all_factor_predictors())
+```
+
+## Tree
+
+Next, I defined a classification tree model and set it to tune three key parameters:
+
+ - `cost_complexity`: penalizes complex trees
+
+ - `tree_depth`: limits how deep the tree can grow
+
+ - `min_n`: sets the minimum number of observations in a node
+```{r}
+#| label: tree
+
+carry_weapon_spec_tree <-
+  decision_tree(
+    cost_complexity = tune(),
+    tree_depth = tune(),
+    min_n = tune()
+  ) |>
+  set_engine("rpart") |>
+  set_mode("classification")
+```
+
+## Workflow
+
+The preprocessing steps and model specification were then integrated into a single workflow.
+
+```{r}
+#| label: workflow
+
+weapon_carry_workflow_tree <-
+  workflow() |>
+  add_recipe(carry_weapon_recipe_tree) |>
+  add_model(carry_weapon_spec_tree)
+
+weapon_carry_workflow_tree
+```
+## Tuning
+
+To prepare for tuning, I created a grid of parameter combinations to explore during cross-validation. For tree depth, I specifically explored values between 2 and 5.
+
+```{r}
+#| label: tuning
+
+tree_grid <-
+  grid_regular(
+    cost_complexity(),
+    tree_depth(c(2, 5)),
+    min_n(),
+    levels = 4)
+
+tree_grid
+```
+
+## Tuning Pt. 2
+
+Using the tuning grid, I performed cross-validation on the training data to find the best combination of parameters based on ROC AUC. To visualize this, I created plots to show how AUC changes under different hyperparamters.
+
+```{r}
+#| label: tuningtwo
+#| eval: false
+
+cart_tune <-
+  weapon_carry_workflow_tree |>
+  tune_grid(
+    resamples = analysis_fold,
+    grid = tree_grid,
+    metrics = metric_set(roc_auc),
+    control = control_grid(save_pred = TRUE)
+  )
+
+saveRDS(cart_tune, here("model_outputs", "tree_tune.rds"))
+```
+
+```{r}
+#| echo: false
+cart_tune <- readRDS(here("models", "model_outputs", "tree_tune.rds"))
+```
+
+
+```{r}
+#| label: visualization-of-parameters
+
+show_best(cart_tune, metric = "roc_auc")
+
+best_plot_tree <- autoplot(cart_tune)
+
+best_plot_tree
+```
+
+## Best Parameters
+
+The best-performing parameter combination was selected based on its ROC AUC score. Using this, I then finalized the workflow to be ready for model fitting.
+
+```{r}
+#| label: best-paramater
+
+best_weapon_carrying_tree <- select_best(cart_tune, 
+                                         metric = "roc_auc")
+```
+
+```{r}
+#| label: finalize-wf
+
+weapon_carrying_final_workflow_tree <-
+  finalize_workflow(weapon_carry_workflow_tree, best_weapon_carrying_tree)
+
+weapon_carrying_final_workflow_tree
+```
+
+## Fit
+
+With the finalized workflow, I fit the tree model to the training data and generated predictions.
+
+```{r}
+#| label: fit
+#| eval: FALSE
+carry_fit <- fit(
+  weapon_carrying_final_workflow_tree, analysis_train)
+
+carry_fit
+
+saveRDS(carry_fit, here("model_outputs", "tree_fit.rds"))
+```
+
+```{r}
+#| echo: FALSE
+carry_fit <- readRDS(here("models", "model_outputs", "tree_fit.rds"))
+```
+
+```{r}
+
+weapon_pred_tree <-
+  augment(carry_fit, analysis_train) |>
+  select(WeaponCarryingSchool, .pred_class, .pred_1, .pred_0)
+
+weapon_pred_tree
+```
+
+## ROC Visualization
+
+I visualized the ROC curve to assess the model’s ability to separate students who did and did not carry weapons.
+
+```{r}
+#| label: ROCVIS
+#| eval: FALSE
+
+roc_plot_training_tree <-
+  weapon_pred_tree |>
+  roc_curve(truth = WeaponCarryingSchool, .pred_0) |>
+  autoplot()
+
+saveRDS(roc_plot_training_tree, here("roc_graphs", "tree.rds"))
+
+roc_plot_training_tree
+```
+
+```{r}
+#| echo: false
+
+roc_plot_training_tree <- readRDS(here("models", "roc_graphs", "tree.rds"))
+roc_plot_training_tree
+```
+```{r}
+auc_result_tree <- weapon_pred_tree |>
+  roc_auc(truth = WeaponCarryingSchool, .pred_0)
+
+auc_result_tree
+```
+
+
+## Fit Resamples
+
+To test the model's efficacy with unknown data, I perofrmed cross-validation on the finalized tree model.
+
+```{r}
+#| label: fit-resamples
+
+fit_resamples(weapon_carrying_final_workflow_tree, resamples = analysis_fold) |>
+  collect_metrics()
+```
+
+## Figure Tree
+
+Lastly, I visualized the final tree structure to interpret which predictors were used in the splits.
+
+```{r}
+#| label: fig-tree
+
+carry_fit |>
+  extract_fit_engine() |>
+  rpart.plot::rpart.plot(roundint=FALSE)
+```
+
+
+## Results and Interpretation
+
+The classification tree offered less predictive power than the past two models (with an AUC of 0.54), but it provided clear insight into which factors most influenced weapon-carrying behavior. The decision tree's structure made it easy to understand *how* the model worked, with prediction paths splitting based on the truth-values of variables.
+
+To arrive at the final model, I used an iterative tuning process, systematically testing combinations of parameters like tree depth and complexity to find the best-performing setup. This trial-and-error refinement—core to machine learning—allowed the model to adjust based on feedback from the data, even if its ultimate performance remained modest.

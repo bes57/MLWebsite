@@ -1,0 +1,21 @@
+/* Only target code blocks inside <pre> tags (used for code chunks) */
+pre {
+  background-color: white !important;
+  color: black !important;
+  padding: 1em;
+  border-radius: 8px;
+  overflow-x: auto;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Prevent nested <code> inside <pre> from adding its own background */
+pre code {
+  background-color: transparent !important;
+  color: inherit !important;
+}
+
+/* Do not change inline code (e.g., `example`) */
+code:not(pre code) {
+  background-color: inherit;
+  color: inherit;
+}

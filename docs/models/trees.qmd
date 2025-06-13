@@ -1,0 +1,205 @@
+---
+title: "Classification Tree"
+format: html
+---
+
+### LIBRARY
+```{r}
+#| include: false
+library(tidymodels)
+library(tidyverse)
+library(here)
+library(rpart)
+```
+### DATA
+
+```{r}
+#| label: data
+set.seed(1990)
+
+analysis_train <- readRDS(here("processed_data", "analysis_train.rds"))
+analysis_fold <- readRDS(here("processed_data", "analysis_folds.rds"))
+```
+
+
+### RECIPE
+```{r}
+#| label: recipe
+
+carry_weapon_recipe_tree <-
+  recipe(WeaponCarryingSchool ~., data = analysis_train) |>
+  step_impute_mean(all_numeric_predictors()) |>
+  step_impute_mode(all_factor_predictors())
+```
+
+### TREE
+
+```{r}
+#| label: tree
+
+carry_weapon_spec_tree <-
+  decision_tree(
+    cost_complexity = tune(),
+    tree_depth = tune(),
+    min_n = tune()
+  ) |>
+  set_engine("rpart") |>
+  set_mode("classification")
+```
+
+### WORKFLOW
+
+```{r}
+#| label: workflow
+
+weapon_carry_workflow_tree <-
+  workflow() |>
+  add_recipe(carry_weapon_recipe_tree) |>
+  add_model(carry_weapon_spec_tree)
+
+weapon_carry_workflow_tree
+```
+### TUNING
+
+```{r}
+#| label: tuning
+
+tree_grid <-
+  grid_regular(
+    cost_complexity(),
+    tree_depth(c(2, 5)),
+    min_n(),
+    levels = 4)
+
+tree_grid
+```
+
+### TUNING PT.2
+
+```{r}
+#| label: tuningtwo
+#| eval: false
+
+cart_tune <-
+  weapon_carry_workflow_tree |>
+  tune_grid(
+    resamples = analysis_fold,
+    grid = tree_grid,
+    metrics = metric_set(roc_auc),
+    control = control_grid(save_pred = TRUE)
+  )
+
+saveRDS(cart_tune, here("model_outputs", "tree_tune.rds"))
+```
+```{r}
+#| echo: false
+cart_tune <- readRDS(here("model_outputs", "tree_tune.rds"))
+```
+
+
+
+### PARAMETRIC VISUALIZATION
+
+```{r}
+#| label: visualization-of-parameters
+
+show_best(cart_tune, metric = "roc_auc")
+
+best_plot_tree <- autoplot(cart_tune)
+
+best_plot_tree
+```
+
+### BEST PARAMETERS
+
+```{r}
+#| label: best-paramater
+
+best_weapon_carrying_tree <- select_best(cart_tune, 
+                                         metric = "roc_auc")
+```
+
+### FINALIZE WORKFLOW
+
+```{r}
+#| label: finalize-wf
+
+weapon_carrying_final_workflow_tree <-
+  finalize_workflow(weapon_carry_workflow_tree, best_weapon_carrying_tree)
+
+weapon_carrying_final_workflow_tree
+```
+
+### FIT
+
+```{r}
+#| label: fit
+#| eval: FALSE
+carry_fit <- fit(
+  weapon_carrying_final_workflow_tree, analysis_train)
+
+carry_fit
+
+saveRDS(carry_fit, here("model_outputs", "tree_fit.rds"))
+```
+
+```{r}
+#| echo: FALSE
+carry_fit <- readRDS(here("model_outputs", "tree_fit.rds"))
+```
+
+### PREDICTIONS
+
+```{r}
+
+weapon_pred_tree <-
+  augment(carry_fit, analysis_train) |>
+  select(WeaponCarryingSchool, .pred_class, .pred_1, .pred_0)
+
+weapon_pred_tree
+```
+
+### ROC VISUALIZATION
+```{r}
+#| label: ROCVIS
+#| eval: FALSE
+
+roc_plot_training_tree <-
+  weapon_pred_tree |>
+  roc_curve(truth = WeaponCarryingSchool, .pred_0) |>
+  autoplot()
+
+saveRDS(roc_plot_training_tree, here("roc_graphs", "tree.rds"))
+
+roc_plot_training_tree
+```
+
+```{r}
+#| echo: false
+
+roc_plot_training_tree <- readRDS(here("roc_graphs", "tree.rds"))
+roc_plot_training_tree
+```
+
+
+### FIT RESAMPLES
+
+```{r}
+#| label: fit-resamples
+
+fit_resamples(weapon_carrying_final_workflow_tree, resamples = analysis_fold) |>
+  collect_metrics()
+```
+
+### FIGURE TREE
+
+```{r}
+#| label: fig-tree
+
+carry_fit |>
+  extract_fit_engine() |>
+  rpart.plot::rpart.plot(roundint=FALSE)
+```
+
+
+

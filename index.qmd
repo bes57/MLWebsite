@@ -1,0 +1,18 @@
+---
+title: "My Machine Learning Notebook"
+---
+
+This website will be my Machine Learning notebook, where I explore a variety of analyses in R. It's meant to be part journal, part portfolio.
+
+### What You'll Find Here
+
+- **About Me**: A little bit about me and my research interests.
+-   **YRBS Models**: This is a collection of machine learning models I coded using the Youth Risk Behavior Survey (YRBS) 2023 dataset. In this, I will implement and understand different modeling techniques using the `tidymodels` framework in R. Included are examples of:
+
+    -   Logistic Regression
+    -   Lasso Regression
+    -   Decision Trees
+    -   Random Forest
+    
+- **Trading**: This is a personal journal of my trading habits and results in 2025. The emphasis here is less on the coding and more on the results; less serious and more light-hearted. 
+

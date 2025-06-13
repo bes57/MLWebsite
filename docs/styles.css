@@ -1,0 +1,48 @@
+body {
+  background-color: #F3E8FF ;
+  color: #000000;
+  font-family: 'Poppins', sans-serif;
+}
+
+/* Force black text for all headings and emphasized styles */
+h1, h2, h3, h4, h5, h6,
+strong, b, em, i,
+code {
+  color: #000000 !important;
+}
+
+/* Profile Section Styles */
+.profile-container {
+  display: flex;
+  align-items: start;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.profile-image {
+  flex: 0 0 200px;
+}
+
+.circle-image {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #800080;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.profile-text {
+  flex: 1;
+}
+
+@media (max-width: 768px) {
+  .profile-container {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .profile-image {
+    margin-bottom: 1rem;
+  }
+}

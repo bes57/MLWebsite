@@ -1,0 +1,222 @@
+---
+title: "Logistic Regression"
+---
+
+
+## Model Overview
+
+Logistic regression is used when the dependent variable is binary (0/1, Yes/No, True/False). The model estimates the probability of the dependent variable being 1 given the independent variables.
+
+## Implementation
+
+```{r}
+#| label: setup
+#| output: false
+library(yardstick)
+library(tidymodels)
+library(tidyverse)
+library(here)
+
+```
+
+
+## Load the data
+
+```{r}
+#| label: load-data
+
+analysis_data <- readRDS(here("models", "data", "analysis_data.rds"))
+analysis_train <- readRDS(here("models", "data", "analysis_train.rds"))
+analysis_test <- readRDS(here("models", "data", "analysis_test.rds"))
+analysis_folds <- readRDS(here("models", "data", "analysis_folds.rds"))
+
+```
+  
+## Recipe
+Before fitting the model, I preprocessed the data using a recipe that:
+
+ - Imputes missing values in categorical variables using the mode
+
+ - Imputes missing values in numeric variables using the mean
+
+ - Removes predictors with zero variance
+
+ - Removes highly correlated numeric predictors (correlation threshold = 0.7)
+
+ - Creates dummy variables for categorical predictors
+```{r}
+#| label: model-rec
+
+weapon_carry_recipe <- 
+  recipe(formula = WeaponCarryingSchool ~ ., data = analysis_data) |>
+  step_impute_mode(all_nominal_predictors()) |>
+  step_impute_mean(all_numeric_predictors()) |>
+  step_zv(all_predictors()) |> 
+  step_corr(all_numeric_predictors(), threshold = 0.7) 
+```
+
+## Bake 
+Now, I applied this trained recipe to the data (hence "bake".)
+```{r}
+rec <- weapon_carry_recipe %>% 
+  prep() %>% 
+  bake(new_data = analysis_data) %>% glimpse()
+```
+
+
+## Model Specification
+Next, I created the framework for a legistic regression that predicts the weapon-carrying variable.  
+```{r}
+#| label: model-spec
+
+weapon_carry_spec <- 
+  logistic_reg() %>% 
+  set_mode("classification") %>% 
+  set_engine("glm") 
+
+weapon_carry_spec
+```
+
+## Workflow  
+
+Combining the above parts, I got the final workflow.  
+
+```{r}
+#| label: model-workflow
+
+weapon_carry_workflow <- workflow() %>%
+  add_recipe(weapon_carry_recipe) %>%
+  add_model(weapon_carry_spec)
+
+
+weapon_carry_workflow
+
+```
+
+## Application  
+
+Applied to the data, a trained logistic regression model was produced.  
+
+```{r}
+#| label: model-fit
+mod_1 <- 
+  fit(weapon_carry_workflow, data = analysis_train) 
+
+mod_1
+
+```
+
+```{r}
+#| label: tidy-model
+
+tidy_model <- 
+  mod_1 |>
+  tidy(exponentiate = TRUE,
+       conf.int = TRUE, 
+       conf.level = .95) |>
+  mutate(p.value = scales::pvalue(p.value))
+
+tidy_model
+
+```
+
+## A Glimpse At The Resulting Formula
+
+$$
+\begin{align*}
+\text{logit}(P) =\ & -3.2994 + 0.7495 \cdot \text{AttackedInNeighborhood}_1 + 0.4841 \cdot \text{Bullying}_1 \\
+&+ 0.4654 \cdot \text{SexualAbuseByOlderPerson}_1 + 0.7171 \cdot \text{ParentalPhysicalAbuse}_1 \\
+&- 0.1592 \cdot \text{ParentSubstanceUse}_1 + \ldots
+\end{align*}
+$$
+
+
+
+
+## Model Evaluation
+Now that the model was created, I tested the predictions with actual data to understand its efficacy.
+```{r}
+weapon_pred <- 
+  augment(mod_1, analysis_train) |> 
+  select(WeaponCarryingSchool, .pred_class, .pred_1, .pred_0)
+
+weapon_pred
+```
+Well, I can't go through the entire list, so I used a confusion matrix to summarize the predictive results of the model.
+
+```{r}
+conf_mat_result <- weapon_pred %>%
+  conf_mat(truth = WeaponCarryingSchool, estimate = .pred_class)
+
+autoplot(conf_mat_result, type = "heatmap") +
+  labs(title = "Confusion Matrix for Weapon-Carrying Model",
+       x = "Predicted Class", y = "True Class")
+```
+It looks like the model has more sensitivity than specificity. I confirmed this by running code to calculate those values.
+```{r}
+conf_metrics <- summary(conf_mat_result)
+
+conf_metrics %>% 
+  filter(.metric %in% c("sens", "spec"))
+```
+
+## ROC Plot
+Another important tool for understanding predictive power is an ROC plot, which I produced below. The AUC is also printed underneath to quantify the graph’s overall ability to distinguish between students who did and did not carry a weapon.
+```{r}
+roc_plot_training <- 
+  weapon_pred |> 
+  roc_curve(truth = WeaponCarryingSchool, .pred_1, event_level = "second") |> 
+  autoplot()
+
+roc_plot_training 
+```
+```{r}
+roc_auc_result <- weapon_pred %>%
+  roc_auc(truth = WeaponCarryingSchool, .pred_1, event_level = "second")
+
+roc_auc_result
+```
+
+
+
+## Visualizations
+To better interpret the model, the forest plot below highlights the predictive strength and direction of each variable.
+```{r}
+#| label: visualizations
+
+tidy_model |> 
+  filter(term != "(Intercept)") |> 
+  ggplot(aes(x = estimate, y = reorder(term, estimate))) +
+  geom_point(size = 3) +
+  geom_errorbarh(aes(xmin = conf.low, xmax = conf.high), height = 0.2) +
+  geom_vline(xintercept = 1, linetype = "dashed", color = "red") +
+  scale_x_log10() +
+  labs(
+    x = "Odds Ratio (log scale)",
+    y = "Predictors",
+    title = "Forest Plot of Logistic Regression Coefficients"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.y = element_text(size = 10),
+    plot.title = element_text(hjust = 0.5)
+  )
+```
+
+
+## Results and Interpretation
+
+#### Model Performance
+The logistic regression model was successful, but not great. An AUC (area under the curve) of 0.69 is decent for an ROC curve. It was trained to predict weapon-carrying behavior in schools, showing extremely high sensitivity (0.999) but very low specificity (0.014). This indicates that the model is nearly perfect at identifying students who did not carry weapons, but it struggles to correctly identify students who did.
+
+This imbalance suggests the model errs on the side of over-predicting weapon carrying, which may be desirable in some safety-first scenarios (e.g. school interventions), but limits its overall precision.  
+
+This is an example of how simple models (in this case, linear regression) don't always give the intended results, often oversimplifying. Machine learning can be used to increase the precision of our model later on.
+
+#### Predictor Effects  
+
+Still, there are interesting takeaways re: the impact of certain conditions on a teenagers likelihood to bring a gunt o school. In moments like this, we have to remember the story behind the numbers.  
+
+For example, we see variables related to violence massively increase the odds of bringing a gun to school ("AttackedInNeighborhood" and "ParentalPhysicalAbuse" were both in the top three for highest exponentiated logistic regression coefficients.)  
+
+Meanwhile, conditions at school seemed less important ("UnfairDisciplineAtSchool" and "SchoolConnectedness" were the two lowest exponentiated logistic regression coefficients.)

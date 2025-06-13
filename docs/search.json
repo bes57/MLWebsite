@@ -1,0 +1,534 @@
+[
+  {
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "-About Me-",
+    "section": "",
+    "text": "As an undergraduate student at Duke University studying Statistical Science and History, I’m passionate about data science, machine learning, and using R to explore complex questions through research and reproducible analysis. In this practice, I use tools like Quarto and RMarkdown to ensure that everything I build is transparent, well-documented, and easy to follow.\nOutside of statistics, some of my interests include jazz piano, bowling, climbing, and college basketball.\n\n\n\nEmail: bes57@duke.edu\n\n\n\n“I wish I was more like Benjamin Sherman.” - Steve Jobs on his deathbed\n\n\n\n“If you don’t like your job, you don’t strike! You just go in every day and do it really half-assed. That’s the American way.” - Homer Simpson"
+  },
+  {
+    "objectID": "models/datasets.html",
+    "href": "models/datasets.html",
+    "title": "Data and Research Question",
+    "section": "",
+    "text": "The Youth Risk Behavior Survey (YRBS) is a national survey that monitors health-related behaviors among high school students, including weapon carrying and associated risk factors.\n\n\n\nSource: Centers for Disease Control and Prevention (CDC)\nYear: 2023\nTarget Population: High school students\nSample Size: Approximately 19,000 students nationwide\n\n\n\n\nHow do logistic regression, lasso, k-nearest neighbors, and tree-based models compare in predicting school-based weapon carrying among adolescents based on risk and protective factors?\n\n\n\nThe dataset includes information on various health-related behaviors:\n\nOutcome\n\nWeapon Carrying (Carried a weapon on school property)\n\nPredictors\n\nTraumatic experiences\nSchool Safety Perceptions\nBullying Experiences\nFamily Support\nSocial Media Use\nPeer Relationships\n\nAnd so forth…\n\n\n\n\n\n\nlibrary(tidyverse)\nlibrary(tidymodels)\nlibrary(here)\ndata(clean_yrbs_2023)\n\n\n\n\n\nanalysis_data &lt;- clean_yrbs_2023 %&gt;%\n    select(\n        WeaponCarryingSchool, AttackedInNeighborhood, Bullying,\n        SexualAbuseByOlderPerson, ParentalPhysicalAbuse, ParentSubstanceUse,\n        ParentIncarceration, SchoolConnectedness, ParentalMonitoring,\n        UnfairDisciplineAtSchool, Homelessness\n    ) |&gt;\n    filter(!is.na(WeaponCarryingSchool)) %&gt;%\n    mutate(across(\n        c(\n            ParentSubstanceUse, ParentIncarceration, SchoolConnectedness,\n            ParentalMonitoring, UnfairDisciplineAtSchool\n        ),\n        ~ as.numeric(.x) - 1\n    )) %&gt;%\n    mutate(across(\n        c(\n            ParentSubstanceUse, ParentIncarceration, SchoolConnectedness,\n            ParentalMonitoring, UnfairDisciplineAtSchool\n        ),\n        ~ factor(.x)\n    ))\n\n\n\n\n\nset.seed(1990)\n\nanalysis_split &lt;- initial_split(analysis_data,\n    strata = WeaponCarryingSchool\n)\n\nanalysis_train &lt;- training(analysis_split)\nanalysis_test &lt;- testing(analysis_split)\n\nanalysis_split\n\n\n\n\n\nanalysis_folds &lt;- vfold_cv(analysis_train,\n    v = 5\n)\nanalysis_folds"
+  },
+  {
+    "objectID": "models/datasets.html#youth-risk-behavior-survey-2023",
+    "href": "models/datasets.html#youth-risk-behavior-survey-2023",
+    "title": "Data and Research Question",
+    "section": "",
+    "text": "The Youth Risk Behavior Survey (YRBS) is a national survey that monitors health-related behaviors among high school students, including weapon carrying and associated risk factors.\n\n\n\nSource: Centers for Disease Control and Prevention (CDC)\nYear: 2023\nTarget Population: High school students\nSample Size: Approximately 19,000 students nationwide\n\n\n\n\nHow do logistic regression, lasso, k-nearest neighbors, and tree-based models compare in predicting school-based weapon carrying among adolescents based on risk and protective factors?\n\n\n\nThe dataset includes information on various health-related behaviors:\n\nOutcome\n\nWeapon Carrying (Carried a weapon on school property)\n\nPredictors\n\nTraumatic experiences\nSchool Safety Perceptions\nBullying Experiences\nFamily Support\nSocial Media Use\nPeer Relationships\n\nAnd so forth…\n\n\n\n\n\n\nlibrary(tidyverse)\nlibrary(tidymodels)\nlibrary(here)\ndata(clean_yrbs_2023)\n\n\n\n\n\nanalysis_data &lt;- clean_yrbs_2023 %&gt;%\n    select(\n        WeaponCarryingSchool, AttackedInNeighborhood, Bullying,\n        SexualAbuseByOlderPerson, ParentalPhysicalAbuse, ParentSubstanceUse,\n        ParentIncarceration, SchoolConnectedness, ParentalMonitoring,\n        UnfairDisciplineAtSchool, Homelessness\n    ) |&gt;\n    filter(!is.na(WeaponCarryingSchool)) %&gt;%\n    mutate(across(\n        c(\n            ParentSubstanceUse, ParentIncarceration, SchoolConnectedness,\n            ParentalMonitoring, UnfairDisciplineAtSchool\n        ),\n        ~ as.numeric(.x) - 1\n    )) %&gt;%\n    mutate(across(\n        c(\n            ParentSubstanceUse, ParentIncarceration, SchoolConnectedness,\n            ParentalMonitoring, UnfairDisciplineAtSchool\n        ),\n        ~ factor(.x)\n    ))\n\n\n\n\n\nset.seed(1990)\n\nanalysis_split &lt;- initial_split(analysis_data,\n    strata = WeaponCarryingSchool\n)\n\nanalysis_train &lt;- training(analysis_split)\nanalysis_test &lt;- testing(analysis_split)\n\nanalysis_split\n\n\n\n\n\nanalysis_folds &lt;- vfold_cv(analysis_train,\n    v = 5\n)\nanalysis_folds"
+  },
+  {
+    "objectID": "models/lasso.html",
+    "href": "models/lasso.html",
+    "title": "Lasso Regression",
+    "section": "",
+    "text": "Lasso regression is a statistical model that combines linear/logistic regression with L1 regularization to perform both variable selection and regularization. The term “Lasso” stands for “Least Absolute Shrinkage and Selection Operator.” This method is particularly useful when dealing with datasets that have many predictors, as it helps to:\n\nReduce overfitting by penalizing large coefficients\nPerform automatic feature selection by shrinking some coefficients to exactly zero\nHandle multicollinearity by selecting only one variable from a group of highly correlated predictors\n\nIn this analysis, I used Lasso regression to predict weapon carrying behavior in schools, demonstrating how this method can help identify the most important predictors while maintaining model interpretability."
+  },
+  {
+    "objectID": "models/lasso.html#setting-up-the-environment",
+    "href": "models/lasso.html#setting-up-the-environment",
+    "title": "Lasso Regression",
+    "section": "Setting Up the Environment",
+    "text": "Setting Up the Environment\nFirst, I loaded the necessary packages for our analysis.\n\nlibrary(here)\nlibrary(tidymodels)\nlibrary(tidyverse)"
+  },
+  {
+    "objectID": "models/lasso.html#loading-the-data",
+    "href": "models/lasso.html#loading-the-data",
+    "title": "Lasso Regression",
+    "section": "Loading the Data",
+    "text": "Loading the Data\n\nanalysis_data &lt;- readRDS(here(\"models\", \"data\", \"analysis_data.rds\"))\nanalysis_train &lt;- readRDS(here(\"models\", \"data\", \"analysis_train.rds\"))\nanalysis_test &lt;- readRDS(here(\"models\",\"data\", \"analysis_test.rds\"))\nanalysis_folds &lt;- readRDS(here(\"models\", \"data\", \"analysis_folds.rds\"))"
+  },
+  {
+    "objectID": "models/lasso.html#data-preprocessing",
+    "href": "models/lasso.html#data-preprocessing",
+    "title": "Lasso Regression",
+    "section": "Data Preprocessing",
+    "text": "Data Preprocessing\nBefore fitting the model, I needed to preprocess the data. I created a recipe that:\n\nImputes missing values in categorical variables using the mode\nImputes missing values in numeric variables using the mean\nRemoves predictors with zero variance\nRemoves highly correlated predictors (correlation threshold = 0.7)\nCreates dummy variables for categorical predictors\n\n\nlasso_weapon_carry_recipe &lt;- \n  recipe(formula = WeaponCarryingSchool ~ ., data = analysis_train) |&gt;\n  step_impute_mode(all_nominal_predictors()) |&gt;\n  step_impute_mean(all_numeric_predictors()) |&gt;\n  step_zv(all_predictors()) |&gt; \n  step_corr(all_numeric_predictors(), threshold = 0.7) %&gt;% \n  step_dummy(all_nominal_predictors())\n\nlasso_weapon_carry_recipe\n\n\n\n\n── Recipe ──────────────────────────────────────────────────────────────────────\n\n\n\n\n\n── Inputs \n\n\nNumber of variables by role\n\n\noutcome:    1\npredictor: 10\n\n\n\n\n\n── Operations \n\n\n• Mode imputation for: all_nominal_predictors()\n\n\n• Mean imputation for: all_numeric_predictors()\n\n\n• Zero variance filter on: all_predictors()\n\n\n• Correlation filter on: all_numeric_predictors()\n\n\n• Dummy variables from: all_nominal_predictors()\n\n\nI applied a recipe to transform the data according to these preprocessing steps.\n\nlasso_weapon_carry_recipe %&gt;% \n  prep() %&gt;% \n  bake(new_data = analysis_train) \n\n# A tibble: 14,696 × 11\n   WeaponCarryingSchool AttackedInNeighborhood_X1 Bullying_X1\n   &lt;fct&gt;                                    &lt;dbl&gt;       &lt;dbl&gt;\n 1 0                                            0           0\n 2 0                                            0           1\n 3 0                                            0           0\n 4 0                                            0           0\n 5 0                                            1           0\n 6 0                                            0           0\n 7 0                                            0           0\n 8 0                                            0           0\n 9 0                                            0           0\n10 0                                            1           0\n# ℹ 14,686 more rows\n# ℹ 8 more variables: SexualAbuseByOlderPerson_X1 &lt;dbl&gt;,\n#   ParentalPhysicalAbuse_X1 &lt;dbl&gt;, ParentSubstanceUse_X1 &lt;dbl&gt;,\n#   ParentIncarceration_X1 &lt;dbl&gt;, SchoolConnectedness_X1 &lt;dbl&gt;,\n#   ParentalMonitoring_X1 &lt;dbl&gt;, UnfairDisciplineAtSchool_X1 &lt;dbl&gt;,\n#   Homelessness_X1 &lt;dbl&gt;"
+  },
+  {
+    "objectID": "models/lasso.html#model-specification",
+    "href": "models/lasso.html#model-specification",
+    "title": "Lasso Regression",
+    "section": "Model Specification",
+    "text": "Model Specification\nI used a logistic regression model with Lasso regularization. The Lasso helps with feature selection by penalizing the absolute size of coefficients. I set mixture = 1 to specify a pure Lasso model, and I’ll go on to tune the penalty parameter to find the optimal level of regularization.\n\nlasso_weapon_carry_spec &lt;-\n  logistic_reg(penalty = tune(), \n               mixture = 1) |&gt; \n  set_engine('glmnet')\n\nlasso_weapon_carry_spec\n\nLogistic Regression Model Specification (classification)\n\nMain Arguments:\n  penalty = tune()\n  mixture = 1\n\nComputational engine: glmnet"
+  },
+  {
+    "objectID": "models/lasso.html#creating-the-workflow",
+    "href": "models/lasso.html#creating-the-workflow",
+    "title": "Lasso Regression",
+    "section": "Creating the Workflow",
+    "text": "Creating the Workflow\nI combined the recipe and model specification into a single workflow. This ensures that all preprocessing steps are properly applied during both training and prediction.\n\nlasso_weapon_carry_workflow &lt;-\n  workflow() |&gt;\n  add_recipe(lasso_weapon_carry_recipe) |&gt;\n  add_model(lasso_weapon_carry_spec)\n\nlasso_weapon_carry_workflow\n\n══ Workflow ════════════════════════════════════════════════════════════════════\nPreprocessor: Recipe\nModel: logistic_reg()\n\n── Preprocessor ────────────────────────────────────────────────────────────────\n5 Recipe Steps\n\n• step_impute_mode()\n• step_impute_mean()\n• step_zv()\n• step_corr()\n• step_dummy()\n\n── Model ───────────────────────────────────────────────────────────────────────\nLogistic Regression Model Specification (classification)\n\nMain Arguments:\n  penalty = tune()\n  mixture = 1\n\nComputational engine: glmnet"
+  },
+  {
+    "objectID": "models/lasso.html#model-tuning",
+    "href": "models/lasso.html#model-tuning",
+    "title": "Lasso Regression",
+    "section": "Model Tuning",
+    "text": "Model Tuning\nTo find the optimal penalty value, I created a grid of potential values to test. I used 50 different penalty values, evenly spaced on a logarithmic scale. Afterward, I performed cross-validation to tune and select the penalty parameter that minimized model error.\n\nlambda_grid &lt;- grid_regular(penalty(), levels = 50)\nlambda_grid\n\n# A tibble: 50 × 1\n    penalty\n      &lt;dbl&gt;\n 1 1   e-10\n 2 1.60e-10\n 3 2.56e-10\n 4 4.09e-10\n 5 6.55e-10\n 6 1.05e- 9\n 7 1.68e- 9\n 8 2.68e- 9\n 9 4.29e- 9\n10 6.87e- 9\n# ℹ 40 more rows\n\n\n\nset.seed(2023)\n\nlasso_tune &lt;- \n  tune_grid(\n  object = lasso_weapon_carry_workflow, \n  resamples = analysis_folds,\n  grid = lambda_grid, \n  control = control_resamples(event_level = \"second\")\n)\n\n\nlasso_tune %&gt;% \n  collect_metrics()\n\n# A tibble: 150 × 7\n    penalty .metric     .estimator  mean     n std_err .config              \n      &lt;dbl&gt; &lt;chr&gt;       &lt;chr&gt;      &lt;dbl&gt; &lt;int&gt;   &lt;dbl&gt; &lt;chr&gt;                \n 1 1   e-10 accuracy    binary     0.957     5 0.00158 Preprocessor1_Model01\n 2 1   e-10 brier_class binary     0.881     5 0.00160 Preprocessor1_Model01\n 3 1   e-10 roc_auc     binary     0.688     5 0.00742 Preprocessor1_Model01\n 4 1.60e-10 accuracy    binary     0.957     5 0.00158 Preprocessor1_Model02\n 5 1.60e-10 brier_class binary     0.881     5 0.00160 Preprocessor1_Model02\n 6 1.60e-10 roc_auc     binary     0.688     5 0.00742 Preprocessor1_Model02\n 7 2.56e-10 accuracy    binary     0.957     5 0.00158 Preprocessor1_Model03\n 8 2.56e-10 brier_class binary     0.881     5 0.00160 Preprocessor1_Model03\n 9 2.56e-10 roc_auc     binary     0.688     5 0.00742 Preprocessor1_Model03\n10 4.09e-10 accuracy    binary     0.957     5 0.00158 Preprocessor1_Model04\n# ℹ 140 more rows\n\n\nTo view how the model’s performance changes with different penalty values, I plotted the lasso model as tuned to different values.\n\nautoplot(lasso_tune)"
+  },
+  {
+    "objectID": "models/lasso.html#selecting-the-best-model",
+    "href": "models/lasso.html#selecting-the-best-model",
+    "title": "Lasso Regression",
+    "section": "Selecting the Best Model",
+    "text": "Selecting the Best Model\nI selected the best model based on the ROC AUC metric, which measures the model’s ability to distinguish between classes.\n\nbest &lt;- lasso_tune |&gt; \n  select_best(metric =\"roc_auc\")\n\nbest\n\n# A tibble: 1 × 2\n   penalty .config              \n     &lt;dbl&gt; &lt;chr&gt;                \n1 0.000339 Preprocessor1_Model33\n\n\nNow I created my final workflow with the best penalty value.\n\nfinal_wf &lt;- finalize_workflow(lasso_weapon_carry_workflow, best)\n\nfinal_wf\n\n══ Workflow ════════════════════════════════════════════════════════════════════\nPreprocessor: Recipe\nModel: logistic_reg()\n\n── Preprocessor ────────────────────────────────────────────────────────────────\n5 Recipe Steps\n\n• step_impute_mode()\n• step_impute_mean()\n• step_zv()\n• step_corr()\n• step_dummy()\n\n── Model ───────────────────────────────────────────────────────────────────────\nLogistic Regression Model Specification (classification)\n\nMain Arguments:\n  penalty = 0.000339322177189533\n  mixture = 1\n\nComputational engine: glmnet"
+  },
+  {
+    "objectID": "models/lasso.html#fitting-the-final-model",
+    "href": "models/lasso.html#fitting-the-final-model",
+    "title": "Lasso Regression",
+    "section": "Fitting the Final Model",
+    "text": "Fitting the Final Model\nTo end, I fit the final model on the training data.\n\nlasso_weapon_fit &lt;- \n  fit(final_wf, data = analysis_train)\n\nlasso_weapon_fit"
+  },
+  {
+    "objectID": "models/lasso.html#model-evaluation",
+    "href": "models/lasso.html#model-evaluation",
+    "title": "Lasso Regression",
+    "section": "Model Evaluation",
+    "text": "Model Evaluation\nAfter tuning, I then had to examine the model’s predictions on the training data.\n\nlasso_weapon_pred &lt;- \n  augment(lasso_weapon_fit, analysis_train) |&gt; \n  select(WeaponCarryingSchool, .pred_class, .pred_1, .pred_0)\n\nlasso_weapon_pred\n\n# A tibble: 14,696 × 4\n   WeaponCarryingSchool .pred_class .pred_1 .pred_0\n   &lt;fct&gt;                &lt;fct&gt;         &lt;dbl&gt;   &lt;dbl&gt;\n 1 0                    0            0.0368   0.963\n 2 0                    0            0.0410   0.959\n 3 0                    0            0.0253   0.975\n 4 0                    0            0.0325   0.968\n 5 0                    0            0.125    0.875\n 6 0                    0            0.0368   0.963\n 7 0                    0            0.0208   0.979\n 8 0                    0            0.0208   0.979\n 9 0                    0            0.0458   0.954\n10 0                    0            0.0529   0.947\n# ℹ 14,686 more rows\n\n\nI visualized the model’s performance using an ROC curve, with the AUV value underneath to quantify said performance.\n\nlasso_roc_plot_training &lt;- \n  lasso_weapon_pred |&gt; \n  roc_curve(truth = WeaponCarryingSchool, .pred_1, event_level = \"second\") |&gt; \n  autoplot()\n\nlasso_roc_plot_training \n\n\n\n\n\n\n\n\n\nlasso_auc_result &lt;- lasso_weapon_pred %&gt;%\n  roc_auc(truth = WeaponCarryingSchool, .pred_1, event_level = \"second\")\n\nlasso_auc_result\n\n# A tibble: 1 × 3\n  .metric .estimator .estimate\n  &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt;\n1 roc_auc binary         0.689"
+  },
+  {
+    "objectID": "models/lasso.html#cross-validation-results",
+    "href": "models/lasso.html#cross-validation-results",
+    "title": "Lasso Regression",
+    "section": "Cross-Validation Results",
+    "text": "Cross-Validation Results\nI fit the model on each cross-validation fold to get a more robust estimate of its performance.\n\nweapon_fit_resamples &lt;- \n  fit_resamples(final_wf, resamples = analysis_folds)\n\nweapon_fit_resamples\n\nNow to examine the cross-validation metrics.\n\ncollect_metrics(weapon_fit_resamples)\n\n# A tibble: 3 × 6\n  .metric     .estimator   mean     n std_err .config             \n  &lt;chr&gt;       &lt;chr&gt;       &lt;dbl&gt; &lt;int&gt;   &lt;dbl&gt; &lt;chr&gt;               \n1 accuracy    binary     0.957      5 0.00158 Preprocessor1_Model1\n2 brier_class binary     0.0399     5 0.00128 Preprocessor1_Model1\n3 roc_auc     binary     0.688      5 0.00737 Preprocessor1_Model1\n\n\nThis 5-fold cross-validation achieved a high accuracy of 95.7%, meaning my model performs well on unseen data."
+  },
+  {
+    "objectID": "models/lasso.html#variable-importance",
+    "href": "models/lasso.html#variable-importance",
+    "title": "Lasso Regression",
+    "section": "Variable Importance",
+    "text": "Variable Importance\nFinally, I looked at the model coefficients to understand which predictors are most important. After listing them, I created a variable importance plot to help visualize the differences.\n\nlasso_weapon_fit |&gt; \n  extract_fit_parsnip() |&gt; \n  tidy()\n\n\nAttaching package: 'Matrix'\n\n\nThe following objects are masked from 'package:tidyr':\n\n    expand, pack, unpack\n\n\nLoaded glmnet 4.1-9\n\n\n# A tibble: 11 × 3\n   term                        estimate  penalty\n   &lt;chr&gt;                          &lt;dbl&gt;    &lt;dbl&gt;\n 1 (Intercept)                  -3.29   0.000339\n 2 AttackedInNeighborhood_X1     0.739  0.000339\n 3 Bullying_X1                   0.472  0.000339\n 4 SexualAbuseByOlderPerson_X1   0.455  0.000339\n 5 ParentalPhysicalAbuse_X1      0.708  0.000339\n 6 ParentSubstanceUse_X1        -0.132  0.000339\n 7 ParentIncarceration_X1        0.0271 0.000339\n 8 SchoolConnectedness_X1       -0.226  0.000339\n 9 ParentalMonitoring_X1         0.584  0.000339\n10 UnfairDisciplineAtSchool_X1  -0.229  0.000339\n11 Homelessness_X1               1.17   0.000339\n\n\n\nlibrary(vip)\n\n\nAttaching package: 'vip'\n\n\nThe following object is masked from 'package:utils':\n\n    vi\n\nlasso_weapon_fit |&gt; \n  extract_fit_engine() |&gt; \n  vip()"
+  },
+  {
+    "objectID": "models/lasso.html#results-and-interpretation",
+    "href": "models/lasso.html#results-and-interpretation",
+    "title": "Lasso Regression",
+    "section": "Results and Interpretation",
+    "text": "Results and Interpretation\nAgain, the model fails to be exceptional. In fact, the AUC was slightly smaller than that from my logistic model. Accuracy stayed high at 95.7%, which is expected given the class imbalance. The model is good at predicting who did not carry a weapon but struggles with those who did. However, it’s not all bad. The model was successful in reproducing results on unseen data (re: a Brier score of 0.04), and we see a similar importance of variables as in the logistic model. The consistency with which violence-related variables have the highest impact increases my certainty that these are genuine risk factors."
+  },
+  {
+    "objectID": "models/logistic.html",
+    "href": "models/logistic.html",
+    "title": "Logistic Regression",
+    "section": "",
+    "text": "Logistic regression is used when the dependent variable is binary (0/1, Yes/No, True/False). The model estimates the probability of the dependent variable being 1 given the independent variables."
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "My Machine Learning Notebook",
+    "section": "",
+    "text": "This website will be my Machine Learning notebook, where I explore a variety of analyses in R. It’s meant to be part journal, part portfolio.\n\nWhat You’ll Find Here\n\nAbout Me: A little bit about me and my research interests.\nYRBS Models: This is a collection of machine learning models I coded using the Youth Risk Behavior Survey (YRBS) 2023 dataset. In this, I will implement and understand different modeling techniques using the tidymodels framework in R. Included are examples of:\n\nLogistic Regression\nLasso Regression\nDecision Trees\nRandom Forest\n\nTrading: This is a personal journal of my trading habits and results in 2025. The emphasis here is less on the coding and more on the results; less serious and more light-hearted."
+  },
+  {
+    "objectID": "models/trees.html",
+    "href": "models/trees.html",
+    "title": "Classification Tree",
+    "section": "",
+    "text": "Decision tree is a predictive modeling technique that uses a tree-like structure to split data based on feature values. It can be used for both classification and regression tasks. The model uses machine learning to recursively partition the dataset into subsets based on the variable that best separates the data at each step, resulting in a hierarchy of decision rules."
+  },
+  {
+    "objectID": "about.html#steve-jobs-on-his-deathbed-said-i-wish-i-was-more-like-benjamin-sherman.",
+    "href": "about.html#steve-jobs-on-his-deathbed-said-i-wish-i-was-more-like-benjamin-sherman.",
+    "title": "About Me",
+    "section": "",
+    "text": "If I could describe myself using three emojis I would select: 🎳🎵🏀"
+  },
+  {
+    "objectID": "about.html#references",
+    "href": "about.html#references",
+    "title": "-About Me-",
+    "section": "",
+    "text": "“I wish I was more like Benjamin Sherman.” - Steve Jobs on his deathbed"
+  },
+  {
+    "objectID": "models/random_forest.html",
+    "href": "models/random_forest.html",
+    "title": "Random Forest",
+    "section": "",
+    "text": "I used a random forest model to predict weapon-carrying behavior in schools. Random forest is a non-parametric ensemble method that builds many decision trees and combines their predictions. Unlike a single decision tree, which is often unstable and prone to overfitting, random forest improves predictive performance by averaging results across many trees."
+  },
+  {
+    "objectID": "about.html#contact-information",
+    "href": "about.html#contact-information",
+    "title": "-About Me-",
+    "section": "",
+    "text": "Email: bes57@duke.edu"
+  },
+  {
+    "objectID": "about.html#important-information",
+    "href": "about.html#important-information",
+    "title": "-About Me-",
+    "section": "",
+    "text": "“If you don’t like your job, you don’t strike! You just go in every day and do it really half-assed.” - Homer Simpson"
+  },
+  {
+    "objectID": "about.html#important-note",
+    "href": "about.html#important-note",
+    "title": "-About Me-",
+    "section": "",
+    "text": "“If you don’t like your job, you don’t strike! You just go in every day and do it really half-assed.” - Homer Simpson"
+  },
+  {
+    "objectID": "about.html#important-notice",
+    "href": "about.html#important-notice",
+    "title": "-About Me-",
+    "section": "",
+    "text": "“If you don’t like your job, you don’t strike! You just go in every day and do it really half-assed.” - Homer Simpson"
+  },
+  {
+    "objectID": "about.html#important-quote",
+    "href": "about.html#important-quote",
+    "title": "-About Me-",
+    "section": "",
+    "text": "“If you don’t like your job, you don’t strike! You just go in every day and do it really half-assed. That’s the American way.” - Homer Simpson"
+  },
+  {
+    "objectID": "models/logistic.html#the-resulting-formula",
+    "href": "models/logistic.html#the-resulting-formula",
+    "title": "Logistic Regression",
+    "section": "The resulting formula",
+    "text": "The resulting formula\n\\[\n\\begin{align*}\n\\text{logit}(P) =\\ & -3.2994 + 0.7495 \\cdot \\text{AttackedInNeighborhood}_1 + 0.4841 \\cdot \\text{Bullying}_1 \\\\\n&+ 0.4654 \\cdot \\text{SexualAbuseByOlderPerson}_1 + 0.7171 \\cdot \\text{ParentalPhysicalAbuse}_1 \\\\\n&- 0.1592 \\cdot \\text{ParentSubstanceUse}_1 + \\ldots\n\\end{align*}\n\\]"
+  },
+  {
+    "objectID": "models/logistic.html#model-overview",
+    "href": "models/logistic.html#model-overview",
+    "title": "Logistic Regression",
+    "section": "",
+    "text": "Logistic regression is used when the dependent variable is binary (0/1, Yes/No, True/False). The model estimates the probability of the dependent variable being 1 given the independent variables."
+  },
+  {
+    "objectID": "models/logistic.html#implementation",
+    "href": "models/logistic.html#implementation",
+    "title": "Logistic Regression",
+    "section": "Implementation",
+    "text": "Implementation\n\nlibrary(yardstick)\nlibrary(tidymodels)\nlibrary(tidyverse)\nlibrary(here)"
+  },
+  {
+    "objectID": "models/logistic.html#load-the-data",
+    "href": "models/logistic.html#load-the-data",
+    "title": "Logistic Regression",
+    "section": "Load the data",
+    "text": "Load the data\n\nanalysis_data &lt;- readRDS(here(\"models\", \"data\", \"analysis_data.rds\"))\nanalysis_train &lt;- readRDS(here(\"models\", \"data\", \"analysis_train.rds\"))\nanalysis_test &lt;- readRDS(here(\"models\", \"data\", \"analysis_test.rds\"))\nanalysis_folds &lt;- readRDS(here(\"models\", \"data\", \"analysis_folds.rds\"))"
+  },
+  {
+    "objectID": "models/logistic.html#recipe",
+    "href": "models/logistic.html#recipe",
+    "title": "Logistic Regression",
+    "section": "Recipe",
+    "text": "Recipe\nBefore fitting the model, I preprocessed the data using a recipe that:\n\nImputes missing values in categorical variables using the mode\nImputes missing values in numeric variables using the mean\nRemoves predictors with zero variance\nRemoves highly correlated numeric predictors (correlation threshold = 0.7)\nCreates dummy variables for categorical predictors\n\n\nweapon_carry_recipe &lt;- \n  recipe(formula = WeaponCarryingSchool ~ ., data = analysis_data) |&gt;\n  step_impute_mode(all_nominal_predictors()) |&gt;\n  step_impute_mean(all_numeric_predictors()) |&gt;\n  step_zv(all_predictors()) |&gt; \n  step_corr(all_numeric_predictors(), threshold = 0.7)"
+  },
+  {
+    "objectID": "models/logistic.html#bake",
+    "href": "models/logistic.html#bake",
+    "title": "Logistic Regression",
+    "section": "Bake",
+    "text": "Bake\nNow, I applied this trained recipe to the data (hence “bake”.)\n\nrec &lt;- weapon_carry_recipe %&gt;% \n  prep() %&gt;% \n  bake(new_data = analysis_data) %&gt;% glimpse()\n\nRows: 19,595\nColumns: 11\n$ AttackedInNeighborhood   &lt;fct&gt; 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, …\n$ Bullying                 &lt;fct&gt; 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, …\n$ SexualAbuseByOlderPerson &lt;fct&gt; 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, …\n$ ParentalPhysicalAbuse    &lt;fct&gt; 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, …\n$ ParentSubstanceUse       &lt;fct&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, …\n$ ParentIncarceration      &lt;fct&gt; 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, …\n$ SchoolConnectedness      &lt;fct&gt; 1, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1, 0, …\n$ ParentalMonitoring       &lt;fct&gt; 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, …\n$ UnfairDisciplineAtSchool &lt;fct&gt; 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, …\n$ Homelessness             &lt;fct&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, …\n$ WeaponCarryingSchool     &lt;fct&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, …"
+  },
+  {
+    "objectID": "models/logistic.html#model-specification",
+    "href": "models/logistic.html#model-specification",
+    "title": "Logistic Regression",
+    "section": "Model Specification",
+    "text": "Model Specification\nNext, I created the framework for a legistic regression that predicts the weapon-carrying variable.\n\nweapon_carry_spec &lt;- \n  logistic_reg() %&gt;% \n  set_mode(\"classification\") %&gt;% \n  set_engine(\"glm\") \n\nweapon_carry_spec\n\nLogistic Regression Model Specification (classification)\n\nComputational engine: glm"
+  },
+  {
+    "objectID": "models/logistic.html#workflow",
+    "href": "models/logistic.html#workflow",
+    "title": "Logistic Regression",
+    "section": "Workflow",
+    "text": "Workflow\nCombining the above parts, I got the final workflow.\n\nweapon_carry_workflow &lt;- workflow() %&gt;%\n  add_recipe(weapon_carry_recipe) %&gt;%\n  add_model(weapon_carry_spec)\n\n\nweapon_carry_workflow\n\n══ Workflow ════════════════════════════════════════════════════════════════════\nPreprocessor: Recipe\nModel: logistic_reg()\n\n── Preprocessor ────────────────────────────────────────────────────────────────\n4 Recipe Steps\n\n• step_impute_mode()\n• step_impute_mean()\n• step_zv()\n• step_corr()\n\n── Model ───────────────────────────────────────────────────────────────────────\nLogistic Regression Model Specification (classification)\n\nComputational engine: glm"
+  },
+  {
+    "objectID": "models/logistic.html#application",
+    "href": "models/logistic.html#application",
+    "title": "Logistic Regression",
+    "section": "Application",
+    "text": "Application\nApplied to the data, a trained logistic regression model was produced.\n\nmod_1 &lt;- \n  fit(weapon_carry_workflow, data = analysis_train) \n\nmod_1\n\n══ Workflow [trained] ══════════════════════════════════════════════════════════\nPreprocessor: Recipe\nModel: logistic_reg()\n\n── Preprocessor ────────────────────────────────────────────────────────────────\n4 Recipe Steps\n\n• step_impute_mode()\n• step_impute_mean()\n• step_zv()\n• step_corr()\n\n── Model ───────────────────────────────────────────────────────────────────────\n\nCall:  stats::glm(formula = ..y ~ ., family = stats::binomial, data = data)\n\nCoefficients:\n              (Intercept)    AttackedInNeighborhood1  \n                 -3.29938                    0.74950  \n                Bullying1  SexualAbuseByOlderPerson1  \n                  0.48405                    0.46540  \n   ParentalPhysicalAbuse1        ParentSubstanceUse1  \n                  0.71713                   -0.15917  \n     ParentIncarceration1       SchoolConnectedness1  \n                  0.07048                   -0.25542  \n      ParentalMonitoring1  UnfairDisciplineAtSchool1  \n                  0.59860                   -0.24268  \n            Homelessness1  \n                  1.18053  \n\nDegrees of Freedom: 14695 Total (i.e. Null);  14685 Residual\nNull Deviance:      5238 \nResidual Deviance: 4872     AIC: 4894\n\n\n\ntidy_model &lt;- \n  mod_1 |&gt;\n  tidy(exponentiate = TRUE,\n       conf.int = TRUE, \n       conf.level = .95) |&gt;\n  mutate(p.value = scales::pvalue(p.value))\n\ntidy_model\n\n# A tibble: 11 × 7\n   term                  estimate std.error statistic p.value conf.low conf.high\n   &lt;chr&gt;                    &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt; &lt;chr&gt;      &lt;dbl&gt;     &lt;dbl&gt;\n 1 (Intercept)             0.0369    0.166    -19.9   &lt;0.001    0.0266    0.0508\n 2 AttackedInNeighborho…   2.12      0.0954     7.85  &lt;0.001    1.75      2.55  \n 3 Bullying1               1.62      0.0919     5.27  &lt;0.001    1.35      1.94  \n 4 SexualAbuseByOlderPe…   1.59      0.133      3.51  &lt;0.001    1.22      2.06  \n 5 ParentalPhysicalAbus…   2.05      0.179      4.01  &lt;0.001    1.43      2.89  \n 6 ParentSubstanceUse1     0.853     0.111     -1.44  0.151     0.688     1.06  \n 7 ParentIncarceration1    1.07      0.126      0.560 0.575     0.841     1.38  \n 8 SchoolConnectedness1    0.775     0.0970    -2.63  0.008     0.639     0.935 \n 9 ParentalMonitoring1     1.82      0.114      5.26  &lt;0.001    1.45      2.27  \n10 UnfairDisciplineAtSc…   0.785     0.114     -2.13  0.033     0.629     0.984 \n11 Homelessness1           3.26      0.155      7.61  &lt;0.001    2.39      4.39"
+  },
+  {
+    "objectID": "models/logistic.html#model-evaluation",
+    "href": "models/logistic.html#model-evaluation",
+    "title": "Logistic Regression",
+    "section": "Model Evaluation",
+    "text": "Model Evaluation\nNow that the model was created, I tested the predictions with actual data to understand its efficacy.\n\nweapon_pred &lt;- \n  augment(mod_1, analysis_train) |&gt; \n  select(WeaponCarryingSchool, .pred_class, .pred_1, .pred_0)\n\nweapon_pred\n\n# A tibble: 14,696 × 4\n   WeaponCarryingSchool .pred_class .pred_1 .pred_0\n   &lt;fct&gt;                &lt;fct&gt;         &lt;dbl&gt;   &lt;dbl&gt;\n 1 0                    0            0.0360   0.964\n 2 0                    0            0.0412   0.959\n 3 0                    0            0.0241   0.976\n 4 0                    0            0.0317   0.968\n 5 0                    0            0.128    0.872\n 6 0                    0            0.0360   0.964\n 7 0                    0            0.0201   0.980\n 8 0                    0            0.0201   0.980\n 9 0                    0            0.0471   0.953\n10 0                    0            0.0531   0.947\n# ℹ 14,686 more rows\n\n\nWell, I can’t go through the entire list, so I used a confusion matrix to summarize the predictive results of the model.\n\nconf_mat_result &lt;- weapon_pred %&gt;%\n  conf_mat(truth = WeaponCarryingSchool, estimate = .pred_class)\n\nautoplot(conf_mat_result, type = \"heatmap\") +\n  labs(title = \"Confusion Matrix for Weapon-Carrying Model\",\n       x = \"Predicted Class\", y = \"True Class\")\n\n\n\n\n\n\n\n\nIt looks like the model has more sensitivity than specificity. I confirmed this by running code to calculate those values.\n\nconf_metrics &lt;- summary(conf_mat_result)\n\nconf_metrics %&gt;% \n  filter(.metric %in% c(\"sens\", \"spec\"))\n\n# A tibble: 2 × 3\n  .metric .estimator .estimate\n  &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt;\n1 sens    binary        0.999 \n2 spec    binary        0.0142"
+  },
+  {
+    "objectID": "models/logistic.html#roc-plot",
+    "href": "models/logistic.html#roc-plot",
+    "title": "Logistic Regression",
+    "section": "ROC Plot",
+    "text": "ROC Plot\nAnother important tool for understanding predictive power is an ROC plot, which I produced below. The AUC is also printed underneath to quantify the graph’s overall ability to distinguish between students who did and did not carry a weapon.\n\nroc_plot_training &lt;- \n  weapon_pred |&gt; \n  roc_curve(truth = WeaponCarryingSchool, .pred_1, event_level = \"second\") |&gt; \n  autoplot()\n\nroc_plot_training \n\n\n\n\n\n\n\n\n\nroc_auc_result &lt;- weapon_pred %&gt;%\n  roc_auc(truth = WeaponCarryingSchool, .pred_1, event_level = \"second\")\n\nroc_auc_result\n\n# A tibble: 1 × 3\n  .metric .estimator .estimate\n  &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt;\n1 roc_auc binary         0.690"
+  },
+  {
+    "objectID": "models/logistic.html#visualizations",
+    "href": "models/logistic.html#visualizations",
+    "title": "Logistic Regression",
+    "section": "Visualizations",
+    "text": "Visualizations\nTo better interpret the model, the forest plot below highlights the predictive strength and direction of each variable.\n\ntidy_model |&gt; \n  filter(term != \"(Intercept)\") |&gt; \n  ggplot(aes(x = estimate, y = reorder(term, estimate))) +\n  geom_point(size = 3) +\n  geom_errorbarh(aes(xmin = conf.low, xmax = conf.high), height = 0.2) +\n  geom_vline(xintercept = 1, linetype = \"dashed\", color = \"red\") +\n  scale_x_log10() +\n  labs(\n    x = \"Odds Ratio (log scale)\",\n    y = \"Predictors\",\n    title = \"Forest Plot of Logistic Regression Coefficients\"\n  ) +\n  theme_minimal() +\n  theme(\n    axis.text.y = element_text(size = 10),\n    plot.title = element_text(hjust = 0.5)\n  )"
+  },
+  {
+    "objectID": "models/logistic.html#results-and-interpretation",
+    "href": "models/logistic.html#results-and-interpretation",
+    "title": "Logistic Regression",
+    "section": "Results and Interpretation",
+    "text": "Results and Interpretation\n\nModel Performance\nThe logistic regression model was successful, but not great. An AUC (area under the curve) of 0.69 is decent for an ROC curve. It was trained to predict weapon-carrying behavior in schools, showing extremely high sensitivity (0.999) but very low specificity (0.014). This indicates that the model is nearly perfect at identifying students who did not carry weapons, but it struggles to correctly identify students who did.\nThis imbalance suggests the model errs on the side of over-predicting weapon carrying, which may be desirable in some safety-first scenarios (e.g. school interventions), but limits its overall precision.\nThis is an example of how simple models (in this case, linear regression) don’t always give the intended results, often oversimplifying. Machine learning can be used to increase the precision of our model later on.\n\n\nPredictor Effects\nStill, there are interesting takeaways re: the impact of certain conditions on a teenagers likelihood to bring a gunt o school. In moments like this, we have to remember the story behind the numbers.\nFor example, we see variables related to violence massively increase the odds of bringing a gun to school (“AttackedInNeighborhood” and “ParentalPhysicalAbuse” were both in the top three for highest exponentiated logistic regression coefficients.)\nMeanwhile, conditions at school seemed less important (“UnfairDisciplineAtSchool” and “SchoolConnectedness” were the two lowest exponentiated logistic regression coefficients.)"
+  },
+  {
+    "objectID": "models/logistic.html#a-glimpse-at-the-resulting-formula",
+    "href": "models/logistic.html#a-glimpse-at-the-resulting-formula",
+    "title": "Logistic Regression",
+    "section": "A Glimpse At The Resulting Formula",
+    "text": "A Glimpse At The Resulting Formula\n\\[\n\\begin{align*}\n\\text{logit}(P) =\\ & -3.2994 + 0.7495 \\cdot \\text{AttackedInNeighborhood}_1 + 0.4841 \\cdot \\text{Bullying}_1 \\\\\n&+ 0.4654 \\cdot \\text{SexualAbuseByOlderPerson}_1 + 0.7171 \\cdot \\text{ParentalPhysicalAbuse}_1 \\\\\n&- 0.1592 \\cdot \\text{ParentSubstanceUse}_1 + \\ldots\n\\end{align*}\n\\]"
+  },
+  {
+    "objectID": "models/trees.html#data",
+    "href": "models/trees.html#data",
+    "title": "Classification Tree",
+    "section": "Data",
+    "text": "Data\n\nanalysis_train &lt;- readRDS(here(\"models\", \"data\", \"analysis_train.rds\"))\nanalysis_fold &lt;- readRDS(here(\"models\", \"data\", \"analysis_folds.rds\"))"
+  },
+  {
+    "objectID": "models/trees.html#recipe",
+    "href": "models/trees.html#recipe",
+    "title": "Classification Tree",
+    "section": "Recipe",
+    "text": "Recipe\nAs before, the data was preprocessed using a recipe that:\n\nImputes missing values in categorical variables using the mode\nImputes missing values in numeric variables using the mean\n\n\ncarry_weapon_recipe_tree &lt;-\n  recipe(WeaponCarryingSchool ~., data = analysis_train) |&gt;\n  step_impute_mean(all_numeric_predictors()) |&gt;\n  step_impute_mode(all_factor_predictors())"
+  },
+  {
+    "objectID": "models/trees.html#tree",
+    "href": "models/trees.html#tree",
+    "title": "Classification Tree",
+    "section": "Tree",
+    "text": "Tree\nNext, I defined a classification tree model and set it to tune three key parameters:\n\ncost_complexity: penalizes complex trees\ntree_depth: limits how deep the tree can grow\nmin_n: sets the minimum number of observations in a node\n\n\ncarry_weapon_spec_tree &lt;-\n  decision_tree(\n    cost_complexity = tune(),\n    tree_depth = tune(),\n    min_n = tune()\n  ) |&gt;\n  set_engine(\"rpart\") |&gt;\n  set_mode(\"classification\")"
+  },
+  {
+    "objectID": "models/trees.html#workflow",
+    "href": "models/trees.html#workflow",
+    "title": "Classification Tree",
+    "section": "Workflow",
+    "text": "Workflow\nThe preprocessing steps and model specification were then integrated into a single workflow.\n\nweapon_carry_workflow_tree &lt;-\n  workflow() |&gt;\n  add_recipe(carry_weapon_recipe_tree) |&gt;\n  add_model(carry_weapon_spec_tree)\n\nweapon_carry_workflow_tree\n\n══ Workflow ════════════════════════════════════════════════════════════════════\nPreprocessor: Recipe\nModel: decision_tree()\n\n── Preprocessor ────────────────────────────────────────────────────────────────\n2 Recipe Steps\n\n• step_impute_mean()\n• step_impute_mode()\n\n── Model ───────────────────────────────────────────────────────────────────────\nDecision Tree Model Specification (classification)\n\nMain Arguments:\n  cost_complexity = tune()\n  tree_depth = tune()\n  min_n = tune()\n\nComputational engine: rpart"
+  },
+  {
+    "objectID": "models/trees.html#tuning",
+    "href": "models/trees.html#tuning",
+    "title": "Classification Tree",
+    "section": "Tuning",
+    "text": "Tuning\nTo prepare for tuning, I created a grid of parameter combinations to explore during cross-validation. For tree depth, I specifically explored values between 2 and 5.\n\ntree_grid &lt;-\n  grid_regular(\n    cost_complexity(),\n    tree_depth(c(2, 5)),\n    min_n(),\n    levels = 4)\n\ntree_grid\n\n# A tibble: 64 × 3\n   cost_complexity tree_depth min_n\n             &lt;dbl&gt;      &lt;int&gt; &lt;int&gt;\n 1    0.0000000001          2     2\n 2    0.0000001             2     2\n 3    0.0001                2     2\n 4    0.1                   2     2\n 5    0.0000000001          3     2\n 6    0.0000001             3     2\n 7    0.0001                3     2\n 8    0.1                   3     2\n 9    0.0000000001          4     2\n10    0.0000001             4     2\n# ℹ 54 more rows"
+  },
+  {
+    "objectID": "models/trees.html#tuning-pt.-2",
+    "href": "models/trees.html#tuning-pt.-2",
+    "title": "Classification Tree",
+    "section": "Tuning Pt. 2",
+    "text": "Tuning Pt. 2\nUsing the tuning grid, I performed cross-validation on the training data to find the best combination of parameters based on ROC AUC. To visualize this, I created plots to show how AUC changes under different hyperparamters.\n\ncart_tune &lt;-\n  weapon_carry_workflow_tree |&gt;\n  tune_grid(\n    resamples = analysis_fold,\n    grid = tree_grid,\n    metrics = metric_set(roc_auc),\n    control = control_grid(save_pred = TRUE)\n  )\n\nsaveRDS(cart_tune, here(\"model_outputs\", \"tree_tune.rds\"))\n\n\nshow_best(cart_tune, metric = \"roc_auc\")\n\n# A tibble: 5 × 9\n  cost_complexity tree_depth min_n .metric .estimator  mean     n std_err\n            &lt;dbl&gt;      &lt;int&gt; &lt;int&gt; &lt;chr&gt;   &lt;chr&gt;      &lt;dbl&gt; &lt;int&gt;   &lt;dbl&gt;\n1    0.0000000001          5     2 roc_auc binary     0.592     5  0.0226\n2    0.0000001             5     2 roc_auc binary     0.592     5  0.0226\n3    0.0001                5     2 roc_auc binary     0.592     5  0.0226\n4    0.0000000001          5    14 roc_auc binary     0.590     5  0.0223\n5    0.0000001             5    14 roc_auc binary     0.590     5  0.0223\n# ℹ 1 more variable: .config &lt;chr&gt;\n\nbest_plot_tree &lt;- autoplot(cart_tune)\n\nbest_plot_tree"
+  },
+  {
+    "objectID": "models/trees.html#parametric-visualization",
+    "href": "models/trees.html#parametric-visualization",
+    "title": "Classification Tree",
+    "section": "Parametric Visualization",
+    "text": "Parametric Visualization\nI visualized how model performance (AUC) changed across different combinations of hyperparameters.\n\nshow_best(cart_tune, metric = \"roc_auc\")\n\n# A tibble: 5 × 9\n  cost_complexity tree_depth min_n .metric .estimator  mean     n std_err\n            &lt;dbl&gt;      &lt;int&gt; &lt;int&gt; &lt;chr&gt;   &lt;chr&gt;      &lt;dbl&gt; &lt;int&gt;   &lt;dbl&gt;\n1    0.0000000001          5     2 roc_auc binary     0.592     5  0.0226\n2    0.0000001             5     2 roc_auc binary     0.592     5  0.0226\n3    0.0001                5     2 roc_auc binary     0.592     5  0.0226\n4    0.0000000001          5    14 roc_auc binary     0.590     5  0.0223\n5    0.0000001             5    14 roc_auc binary     0.590     5  0.0223\n# ℹ 1 more variable: .config &lt;chr&gt;\n\nbest_plot_tree &lt;- autoplot(cart_tune)\n\nbest_plot_tree"
+  },
+  {
+    "objectID": "models/trees.html#best-parameters",
+    "href": "models/trees.html#best-parameters",
+    "title": "Classification Tree",
+    "section": "Best Parameters",
+    "text": "Best Parameters\nThe best-performing parameter combination was selected based on its ROC AUC score. Using this, I then finalized the workflow to be ready for model fitting.\n\nbest_weapon_carrying_tree &lt;- select_best(cart_tune, \n                                         metric = \"roc_auc\")\n\n\nweapon_carrying_final_workflow_tree &lt;-\n  finalize_workflow(weapon_carry_workflow_tree, best_weapon_carrying_tree)\n\nweapon_carrying_final_workflow_tree\n\n══ Workflow ════════════════════════════════════════════════════════════════════\nPreprocessor: Recipe\nModel: decision_tree()\n\n── Preprocessor ────────────────────────────────────────────────────────────────\n2 Recipe Steps\n\n• step_impute_mean()\n• step_impute_mode()\n\n── Model ───────────────────────────────────────────────────────────────────────\nDecision Tree Model Specification (classification)\n\nMain Arguments:\n  cost_complexity = 1e-10\n  tree_depth = 5\n  min_n = 2\n\nComputational engine: rpart"
+  },
+  {
+    "objectID": "models/trees.html#finalize-workflow",
+    "href": "models/trees.html#finalize-workflow",
+    "title": "Classification Tree",
+    "section": "Finalize Workflow",
+    "text": "Finalize Workflow\nUsing the best parameters, I finalized the workflow to be ready for model fitting.\n\nweapon_carrying_final_workflow_tree &lt;-\n  finalize_workflow(weapon_carry_workflow_tree, best_weapon_carrying_tree)\n\nweapon_carrying_final_workflow_tree\n\n══ Workflow ════════════════════════════════════════════════════════════════════\nPreprocessor: Recipe\nModel: decision_tree()\n\n── Preprocessor ────────────────────────────────────────────────────────────────\n2 Recipe Steps\n\n• step_impute_mean()\n• step_impute_mode()\n\n── Model ───────────────────────────────────────────────────────────────────────\nDecision Tree Model Specification (classification)\n\nMain Arguments:\n  cost_complexity = 1e-10\n  tree_depth = 5\n  min_n = 2\n\nComputational engine: rpart"
+  },
+  {
+    "objectID": "models/trees.html#fit",
+    "href": "models/trees.html#fit",
+    "title": "Classification Tree",
+    "section": "Fit",
+    "text": "Fit\nWith the finalized workflow, I fit the tree model to the training data and generated predictions.\n\ncarry_fit &lt;- fit(\n  weapon_carrying_final_workflow_tree, analysis_train)\n\ncarry_fit\n\nsaveRDS(carry_fit, here(\"model_outputs\", \"tree_fit.rds\"))\n\n\nweapon_pred_tree &lt;-\n  augment(carry_fit, analysis_train) |&gt;\n  select(WeaponCarryingSchool, .pred_class, .pred_1, .pred_0)\n\nweapon_pred_tree\n\n# A tibble: 14,696 × 4\n   WeaponCarryingSchool .pred_class .pred_1 .pred_0\n   &lt;fct&gt;                &lt;fct&gt;         &lt;dbl&gt;   &lt;dbl&gt;\n 1 0                    0            0.0396   0.960\n 2 0                    0            0.0396   0.960\n 3 0                    0            0.0396   0.960\n 4 0                    0            0.0396   0.960\n 5 0                    0            0.0396   0.960\n 6 0                    0            0.0396   0.960\n 7 0                    0            0.0396   0.960\n 8 0                    0            0.0396   0.960\n 9 0                    0            0.0396   0.960\n10 0                    0            0.0396   0.960\n# ℹ 14,686 more rows"
+  },
+  {
+    "objectID": "models/trees.html#predictions",
+    "href": "models/trees.html#predictions",
+    "title": "Classification Tree",
+    "section": "Predictions",
+    "text": "Predictions\n\nweapon_pred_tree &lt;-\n  augment(carry_fit, analysis_train) |&gt;\n  select(WeaponCarryingSchool, .pred_class, .pred_1, .pred_0)\n\nweapon_pred_tree\n\n# A tibble: 14,696 × 4\n   WeaponCarryingSchool .pred_class .pred_1 .pred_0\n   &lt;fct&gt;                &lt;fct&gt;         &lt;dbl&gt;   &lt;dbl&gt;\n 1 0                    0            0.0396   0.960\n 2 0                    0            0.0396   0.960\n 3 0                    0            0.0396   0.960\n 4 0                    0            0.0396   0.960\n 5 0                    0            0.0396   0.960\n 6 0                    0            0.0396   0.960\n 7 0                    0            0.0396   0.960\n 8 0                    0            0.0396   0.960\n 9 0                    0            0.0396   0.960\n10 0                    0            0.0396   0.960\n# ℹ 14,686 more rows"
+  },
+  {
+    "objectID": "models/trees.html#roc-visualization",
+    "href": "models/trees.html#roc-visualization",
+    "title": "Classification Tree",
+    "section": "ROC Visualization",
+    "text": "ROC Visualization\nI visualized the ROC curve to assess the model’s ability to separate students who did and did not carry weapons.\n\nroc_plot_training_tree &lt;-\n  weapon_pred_tree |&gt;\n  roc_curve(truth = WeaponCarryingSchool, .pred_0) |&gt;\n  autoplot()\n\nsaveRDS(roc_plot_training_tree, here(\"roc_graphs\", \"tree.rds\"))\n\nroc_plot_training_tree\n\n\n\n\n\n\n\n\n\n\n\nauc_result_tree &lt;- weapon_pred_tree |&gt;\n  roc_auc(truth = WeaponCarryingSchool, .pred_0)\n\nauc_result_tree\n\n# A tibble: 1 × 3\n  .metric .estimator .estimate\n  &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt;\n1 roc_auc binary         0.544"
+  },
+  {
+    "objectID": "models/trees.html#fit-resamples",
+    "href": "models/trees.html#fit-resamples",
+    "title": "Classification Tree",
+    "section": "Fit Resamples",
+    "text": "Fit Resamples\nTo test the model’s efficacy with unknown data, I perofrmed cross-validation on the finalized tree model.\n\nfit_resamples(weapon_carrying_final_workflow_tree, resamples = analysis_fold) |&gt;\n  collect_metrics()\n\n# A tibble: 3 × 6\n  .metric     .estimator   mean     n std_err .config             \n  &lt;chr&gt;       &lt;chr&gt;       &lt;dbl&gt; &lt;int&gt;   &lt;dbl&gt; &lt;chr&gt;               \n1 accuracy    binary     0.955      5 0.00141 Preprocessor1_Model1\n2 brier_class binary     0.0412     5 0.00135 Preprocessor1_Model1\n3 roc_auc     binary     0.592      5 0.0226  Preprocessor1_Model1"
+  },
+  {
+    "objectID": "models/trees.html#figure-tree",
+    "href": "models/trees.html#figure-tree",
+    "title": "Classification Tree",
+    "section": "Figure Tree",
+    "text": "Figure Tree\nLastly, I visualized the final tree structure to interpret which predictors were used in the splits.\n\ncarry_fit |&gt;\n  extract_fit_engine() |&gt;\n  rpart.plot::rpart.plot(roundint=FALSE)\n\n\n\n\n\n\n\nFigure 1"
+  },
+  {
+    "objectID": "models/trees.html#library",
+    "href": "models/trees.html#library",
+    "title": "Classification Tree",
+    "section": "Library",
+    "text": "Library\n\nlibrary(tidymodels)\nlibrary(tidyverse)\nlibrary(here)\nlibrary(rpart)"
+  },
+  {
+    "objectID": "models/trees.html#results-and-interpretation",
+    "href": "models/trees.html#results-and-interpretation",
+    "title": "Classification Tree",
+    "section": "Results and Interpretation",
+    "text": "Results and Interpretation\nThe classification tree offered less predictive power than the past two models (with an AUC of 0.54), but it provided clear insight into which factors most influenced weapon-carrying behavior. The decision tree’s structure made it easy to understand how the model worked, with prediction paths splitting based on the truth-values of variables.\nTo arrive at the final model, I used an iterative tuning process, systematically testing combinations of parameters like tree depth and complexity to find the best-performing setup. This trial-and-error refinement—core to machine learning—allowed the model to adjust based on feedback from the data, even if its ultimate performance remained modest."
+  },
+  {
+    "objectID": "models/trees.html#model-overview",
+    "href": "models/trees.html#model-overview",
+    "title": "Classification Tree",
+    "section": "",
+    "text": "Decision tree is a predictive modeling technique that uses a tree-like structure to split data based on feature values. It can be used for both classification and regression tasks. The model uses machine learning to recursively partition the dataset into subsets based on the variable that best separates the data at each step, resulting in a hierarchy of decision rules."
+  },
+  {
+    "objectID": "models/lasso.html#model-overview",
+    "href": "models/lasso.html#model-overview",
+    "title": "Lasso Regression",
+    "section": "",
+    "text": "Lasso regression is a statistical model that combines linear/logistic regression with L1 regularization to perform both variable selection and regularization. The term “Lasso” stands for “Least Absolute Shrinkage and Selection Operator.” This method is particularly useful when dealing with datasets that have many predictors, as it helps to:\n\nReduce overfitting by penalizing large coefficients\nPerform automatic feature selection by shrinking some coefficients to exactly zero\nHandle multicollinearity by selecting only one variable from a group of highly correlated predictors\n\nIn this analysis, I used Lasso regression to predict weapon carrying behavior in schools, demonstrating how this method can help identify the most important predictors while maintaining model interpretability."
+  },
+  {
+    "objectID": "models/random_forest.html#model-overview",
+    "href": "models/random_forest.html#model-overview",
+    "title": "Random Forest",
+    "section": "",
+    "text": "I used a random forest model to predict weapon-carrying behavior in schools. Random forest is a non-parametric ensemble method that builds many decision trees and combines their predictions. Unlike a single decision tree, which is often unstable and prone to overfitting, random forest improves predictive performance by averaging results across many trees."
+  },
+  {
+    "objectID": "models/random_forest.html#loading-packages",
+    "href": "models/random_forest.html#loading-packages",
+    "title": "Random Forest",
+    "section": "Loading Packages",
+    "text": "Loading Packages\n\n#install.packages(\"ranger\") \n\nlibrary(tidyverse)\nlibrary(tidymodels)\nlibrary(here)\nlibrary(rpart.plot)\nlibrary(ranger)\nlibrary(skimr)"
+  },
+  {
+    "objectID": "models/random_forest.html#loading-the-data",
+    "href": "models/random_forest.html#loading-the-data",
+    "title": "Random Forest",
+    "section": "Loading the Data",
+    "text": "Loading the Data\n\nanalysis_train &lt;- readRDS(here(\"models\", \"data\", \"analysis_train.rds\"))\nanalysis_test &lt;- readRDS(here(\"models\", \"data\", \"analysis_test.rds\"))\nanalysis_fold &lt;- readRDS(here(\"models\", \"data\", \"analysis_folds.rds\"))"
+  },
+  {
+    "objectID": "models/random_forest.html#data-preprocessing",
+    "href": "models/random_forest.html#data-preprocessing",
+    "title": "Random Forest",
+    "section": "Data Preprocessing",
+    "text": "Data Preprocessing\nBefore modeling, I created a recipe that:\n\nImputes missing numeric values using the mean\nImputes missing categorical values using the mode\nConverts categorical predictors into dummy variables\n\n\nweapon_carry_recipe_rf &lt;-\n  recipe(WeaponCarryingSchool~., data = analysis_train) %&gt;%\n  step_impute_mean(all_numeric_predictors()) %&gt;%\n  step_impute_mode(all_nominal_predictors()) %&gt;%\n  step_dummy(all_nominal_predictors())"
+  },
+  {
+    "objectID": "models/random_forest.html#model-specification",
+    "href": "models/random_forest.html#model-specification",
+    "title": "Random Forest",
+    "section": "Model Specification",
+    "text": "Model Specification\nI defined a random forest classifier using the ranger engine. I tuned the mtry (number of predictors sampled for each split) and min_n (minimum node size). I also enabled permutation-based variable importance for interpretation later.\n\nweapon_carry_spec_rf &lt;- \n  rand_forest(\n    mtry = tune(), \n    min_n = tune(),\n    trees = 100) |&gt;  \n  set_mode(\"classification\") |&gt;  \n  set_engine(\"ranger\", \n             importance = \"permutation\")"
+  },
+  {
+    "objectID": "models/random_forest.html#workflow",
+    "href": "models/random_forest.html#workflow",
+    "title": "Random Forest",
+    "section": "Workflow",
+    "text": "Workflow\n\nweapon_carry_workflow_rf &lt;- \n  workflow() |&gt; \n  add_recipe(weapon_carry_recipe_rf) |&gt;  \n  add_model(weapon_carry_spec_rf)"
+  },
+  {
+    "objectID": "models/random_forest.html#model-tuning",
+    "href": "models/random_forest.html#model-tuning",
+    "title": "Random Forest",
+    "section": "Model Tuning",
+    "text": "Model Tuning\nI performed cross-validation to tune the hyperparameters.\n\nset.seed(46257)\n  \nweapon_tune_rf &lt;- weapon_carry_workflow_rf |&gt; \n  tune_grid(\n    resamples = analysis_fold,\n    grid = 11)\n\nsaveRDS(weapon_tune_rf, here(\"models\", \"model_outputs\", \"weapon_tune.rds\"))"
+  },
+  {
+    "objectID": "models/random_forest.html#evaluating-tuning-results",
+    "href": "models/random_forest.html#evaluating-tuning-results",
+    "title": "Random Forest",
+    "section": "Evaluating Tuning Results",
+    "text": "Evaluating Tuning Results\nI plotted the results and selected the best model based on ROC AUC.\n\nshow_best(weapon_tune, metric = \"roc_auc\")\n\n# A tibble: 5 × 8\n   mtry min_n .metric .estimator  mean     n std_err .config              \n  &lt;int&gt; &lt;int&gt; &lt;chr&gt;   &lt;chr&gt;      &lt;dbl&gt; &lt;int&gt;   &lt;dbl&gt; &lt;chr&gt;                \n1     2    17 roc_auc binary     0.686     5 0.00988 Preprocessor1_Model01\n2     2    14 roc_auc binary     0.685     5 0.00961 Preprocessor1_Model04\n3     3    19 roc_auc binary     0.682     5 0.00935 Preprocessor1_Model02\n4     4    24 roc_auc binary     0.675     5 0.00953 Preprocessor1_Model10\n5     5    30 roc_auc binary     0.670     5 0.00978 Preprocessor1_Model07\n\nbest_plot_rf &lt;- autoplot(weapon_tune)\n\nbest_plot_rf\n\n\n\n\n\n\n\n\n\nbest &lt;- select_best(weapon_tune, metric = \"roc_auc\")\n\nbest\n\n# A tibble: 1 × 3\n   mtry min_n .config              \n  &lt;int&gt; &lt;int&gt; &lt;chr&gt;                \n1     2    17 Preprocessor1_Model01"
+  },
+  {
+    "objectID": "models/random_forest.html#finalizing-and-fitting-the-model",
+    "href": "models/random_forest.html#finalizing-and-fitting-the-model",
+    "title": "Random Forest",
+    "section": "Finalizing and Fitting the Model",
+    "text": "Finalizing and Fitting the Model\nI finalized the workflow with the best hyperparameters and fit it to the training data.\n\nfinal_wf &lt;- finalize_workflow(weapon_carry_workflow_rf, best)\n\nfinal_wf\n\n══ Workflow ════════════════════════════════════════════════════════════════════\nPreprocessor: Recipe\nModel: rand_forest()\n\n── Preprocessor ────────────────────────────────────────────────────────────────\n3 Recipe Steps\n\n• step_impute_mean()\n• step_impute_mode()\n• step_dummy()\n\n── Model ───────────────────────────────────────────────────────────────────────\nRandom Forest Model Specification (classification)\n\nMain Arguments:\n  mtry = 2\n  trees = 100\n  min_n = 17\n\nEngine-Specific Arguments:\n  importance = permutation\n\nComputational engine: ranger \n\n\n\nforest_fit &lt;- fit(final_wf, analysis_train)\n\nforest_fit\n\n══ Workflow [trained] ══════════════════════════════════════════════════════════\nPreprocessor: Recipe\nModel: rand_forest()\n\n── Preprocessor ────────────────────────────────────────────────────────────────\n3 Recipe Steps\n\n• step_impute_mean()\n• step_impute_mode()\n• step_dummy()\n\n── Model ───────────────────────────────────────────────────────────────────────\nRanger result\n\nCall:\n ranger::ranger(x = maybe_data_frame(x), y = y, mtry = min_cols(~2L,      x), num.trees = ~100, min.node.size = min_rows(~17L, x),      importance = ~\"permutation\", num.threads = 1, verbose = FALSE,      seed = sample.int(10^5, 1), probability = TRUE) \n\nType:                             Probability estimation \nNumber of trees:                  100 \nSample size:                      14696 \nNumber of independent variables:  10 \nMtry:                             2 \nTarget node size:                 17 \nVariable importance mode:         permutation \nSplitrule:                        gini \nOOB prediction error (Brier s.):  0.04008064"
+  },
+  {
+    "objectID": "models/random_forest.html#making-predictions",
+    "href": "models/random_forest.html#making-predictions",
+    "title": "Random Forest",
+    "section": "Making Predictions",
+    "text": "Making Predictions\nAfter all of that, I was finally able to make predictions using the model and test its results.\n\nweapon_pred &lt;-\n  augment(forest_fit, analysis_train) |&gt;\n  select(WeaponCarryingSchool, .pred_class, .pred_1, .pred_0)\n\nweapon_pred\n\n# A tibble: 14,696 × 4\n   WeaponCarryingSchool .pred_class .pred_1 .pred_0\n   &lt;fct&gt;                &lt;fct&gt;         &lt;dbl&gt;   &lt;dbl&gt;\n 1 0                    0            0.0482   0.952\n 2 0                    0            0.0424   0.958\n 3 0                    0            0.0214   0.979\n 4 0                    0            0.0260   0.974\n 5 0                    0            0.137    0.863\n 6 0                    0            0.0482   0.952\n 7 0                    0            0.0251   0.975\n 8 0                    0            0.0251   0.975\n 9 0                    0            0.0403   0.960\n10 0                    0            0.0521   0.948\n# ℹ 14,686 more rows"
+  },
+  {
+    "objectID": "models/random_forest.html#roc-curve-and-auc",
+    "href": "models/random_forest.html#roc-curve-and-auc",
+    "title": "Random Forest",
+    "section": "ROC Curve and AUC",
+    "text": "ROC Curve and AUC\nI visualized model performance with an ROC curve and computed the AUC.\n\nroc_plot &lt;-\n  weapon_pred |&gt;\n  roc_curve(truth = WeaponCarryingSchool,\n            .pred_1,\n            event_level = \"second\") |&gt;\n  autoplot()\n\nroc_plot\n\n\n\n\n\n\n\n\n\nweapon_pred |&gt;\n  roc_auc(truth = WeaponCarryingSchool,\n          .pred_1,\n          event_level = \"second\")\n\n# A tibble: 1 × 3\n  .metric .estimator .estimate\n  &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt;\n1 roc_auc binary         0.705"
+  },
+  {
+    "objectID": "models/random_forest.html#results-and-interpretation",
+    "href": "models/random_forest.html#results-and-interpretation",
+    "title": "Random Forest",
+    "section": "Results and Interpretation",
+    "text": "Results and Interpretation\nThe random forest model slightly outperformed my previous models in terms of discriminative ability, achieving an AUC of 0.703. It’s interesting to see how different machine learning models perform better/worse than others. The upgrade in predictive power from a singular decision tree (AUC of 0.54) to a random forest (AUC of 0.7) exemplifies the importance of creating multiple models to avoid overfitting and capture more complex relationships. As for the model itself, the model was tuned with a relatively small mtry of 2 and a min_n of 17, which suggests that shallow trees and minimal predictor sampling worked best to avoid overfitting. It’s likely this reflects the high class imbalance and multicollinearity in the dataset—forcing the model to generalize more simply helped improve its generalization to unseen data."
+  },
+  {
+    "objectID": "Kalshi/KalshiUpToMay.html",
+    "href": "Kalshi/KalshiUpToMay.html",
+    "title": "Kalshi Analysis 2025 (Updated May 31st)",
+    "section": "",
+    "text": "In 2025, I began trading on Kalshi, a prediction market platform where users can trade on the outcome of real-world events. This ranges from political results to sports results. Particularly from April onwards, I began putting a bit more thought into my trading strategies, and thus I thought it apt to journal this process (i.e. lessons, profitability, trends, and anything else of note.) This is meant to be more of a journal for fun with an emphasis on the results/narratives, not really a showcase of coding or anything scientific/professional (no stochastic calculus to be found here), so all of the code is hidden. If you’re interested in the code, just click “Show code” above any result."
+  },
+  {
+    "objectID": "Kalshi/KalshiUpToMay.html#introduction",
+    "href": "Kalshi/KalshiUpToMay.html#introduction",
+    "title": "Kalshi Analysis 2025 (Updated May 31st)",
+    "section": "",
+    "text": "In 2025, I began trading on Kalshi, a prediction market platform where users can trade on the outcome of real-world events. This ranges from political results to sports results. Particularly from April onwards, I began putting a bit more thought into my trading strategies, and thus I thought it apt to journal this process (i.e. lessons, profitability, trends, and anything else of note.) This is meant to be more of a journal for fun with an emphasis on the results/narratives, not really a showcase of coding or anything scientific/professional (no stochastic calculus to be found here), so all of the code is hidden. If you’re interested in the code, just click “Show code” above any result."
+  },
+  {
+    "objectID": "Kalshi/KalshiUpToMay.html#basic-statistics",
+    "href": "Kalshi/KalshiUpToMay.html#basic-statistics",
+    "title": "Kalshi Analysis 2025 (Updated May 31st)",
+    "section": "Basic Statistics",
+    "text": "Basic Statistics\n\nView below code to see library loading\n\n\nShow code\n#install.packages(\"kableExtra\")\nsuppressPackageStartupMessages(library(tidymodels))\ntidymodels_prefer()\nsuppressPackageStartupMessages(library(tidyverse))\nlibrary(kableExtra)\nlibrary(glue)\nlibrary(rUM)\nlibrary(rio)\nlibrary(table1)\nlibrary(knitr)\nlibrary(gt)\nlibrary(broom)\nlibrary(conflicted)\n\n\n\n\nView below code to see dataset loading/cleaning\n\n\nShow code\nKalshi25 &lt;- read.csv(\"~/Downloads/MayKalshi.csv\", stringsAsFactors = FALSE)\n\nscales::dollar_format()\nfunction (x) \n{\n    dollar(x, accuracy = accuracy, scale = scale, prefix = prefix, \n        suffix = suffix, big.mark = big.mark, decimal.mark = decimal.mark, \n        trim = trim, largest_with_cents = largest_with_cents, \n        negative_parens = negative_parens, ...)\n}\n&lt;bytecode: 0x1423638f0&gt;\n&lt;environment: 0x142362e00&gt;\n\nKalshi25$Created_Clean &lt;- gsub(\" at \", \" \", Kalshi25$Created)\nKalshi25$Created_Clean &lt;- gsub(\" EST\", \"\", Kalshi25$Created_Clean)\n\nKalshi25$Created_Parsed &lt;- parse_date_time(Kalshi25$Created_Clean, orders = \"b d, Y I:Mp\")\n\nKalshi25$Month &lt;- format(Kalshi25$Created_Parsed, \"%B\")\nKalshi25$DayOfWeek &lt;- weekdays(Kalshi25$Created_Parsed) \nKalshi25$Hour &lt;- hour(Kalshi25$Created_Parsed)              \n\nmonth_levels &lt;- month.name  # \"January\" to \"December\"\nday_levels &lt;- c(\"Sunday\", \"Monday\", \"Tuesday\", \"Wednesday\", \"Thursday\", \"Friday\", \"Saturday\")\n\nKalshi25 &lt;- Kalshi25 |&gt; select(-Created)\n\nglimpse(Kalshi25)\nRows: 10,883\nColumns: 14\n$ Type             &lt;chr&gt; \"settlement\", \"credit\", \"trade\", \"settlement\", \"trade…\n$ Ticker           &lt;chr&gt; \"GPT5-24DEC31\", \"\", \"HOUSEMOV-24-R-B1-5\", \"PRES-2024-…\n$ Contracts        &lt;int&gt; 500, 0, 486, 100, 104, 562, 32, 29, 50, 2, 4, 24, 230…\n$ Direction        &lt;chr&gt; \"Yes\", \"Yes\", \"No\", \"Yes\", \"Yes\", \"Yes\", \"No\", \"Yes\",…\n$ Average_Price    &lt;int&gt; 7, 0, 2, 1, 46, 6, 62, 66, 4, 50, 51, 51, 4, 47, 1, 1…\n$ Realized_Revenue &lt;chr&gt; \"0.00\", \"$1.09\", \"0.00\", \"0.00\", \"0.00\", \"0.00\", \"0.0…\n$ Realized_Cost    &lt;chr&gt; \"$35.00\", \"0.00\", \"0.00\", \"$1.00\", \"0.00\", \"0.00\", \"0…\n$ Realized_Profit  &lt;chr&gt; \"-$35.00\", \"+$1.09\", \"$0.00\", \"-$1.00\", \"$0.00\", \"$0.…\n$ Fees             &lt;chr&gt; \"0.00\", \"0.00\", \"0.00\", \"0.00\", \"$1.81\", \"$2.22\", \"$0…\n$ Created_Clean    &lt;chr&gt; \"Jan 1, 2025 2:28AM\", \"Jan 1, 2025 3:08AM\", \"Jan 6, 2…\n$ Created_Parsed   &lt;dttm&gt; 2025-01-01 02:28:00, 2025-01-01 03:08:00, 2025-01-06…\n$ Month            &lt;chr&gt; \"January\", \"January\", \"January\", \"January\", \"January\"…\n$ DayOfWeek        &lt;chr&gt; \"Wednesday\", \"Wednesday\", \"Monday\", \"Monday\", \"Monday…\n$ Hour             &lt;int&gt; 2, 3, 14, 13, 2, 2, 16, 23, 23, 23, 23, 23, 2, 2, 10,…\n\n\nFor fun, let’s start simple by looking at some straight numbers thus far. Nothing fancy.\n\n\nFirstly, my profit in 2025:\n\n\nShow code\nKalshi25$Realized_Profit_Clean &lt;- as.numeric(gsub(\"[\\\\$,]\", \"\", Kalshi25$Realized_Profit))\ntotal_realized_profit &lt;- sum(Kalshi25$Realized_Profit_Clean, na.rm = TRUE)\n\n\ndata.frame(Total_Realized_Profit = dollar(total_realized_profit)) |&gt;\n  kable(caption = \"\", align = \"c\") |&gt;\n  kable_styling(full_width = FALSE)\n\n\n\n\n\nTotal_Realized_Profit\n\n\n\n\n$4,819.00\n\n\n\n\n\n\n\nWelp, the number isn’t negative. That’s always a good start. Given that I started with $200, I’m proud of this.\n\n\nHow about the amount of money I’ve lost in 2025 to fees?\n\n\nShow code\nKalshi25$Fees_Clean &lt;- as.numeric(gsub(\"[\\\\$,]\", \"\", Kalshi25$Fees))\ntotal_fees &lt;- sum(Kalshi25$Fees_Clean, na.rm = TRUE)\n\ndata.frame(Total_Fees = dollar(total_fees)) %&gt;%\n  kable(caption = \"\", align = \"c\") %&gt;%\n  kable_styling(full_width = FALSE)\n\n\n\n\n\nTotal_Fees\n\n\n\n\n$1,612.01\n\n\n\n\n\n\n\nHoly shit. This is surprising. The profit figure above already takes fees into account, but still. It’s clear that these minimal fees have built up for me over time, but it also shows how Kalshi remains profitable.\nAs a conservative estimate, let’s assume there are 5,000 traders who are more trading in higher volume than me (it’s probably higher.) This means there are 5,000 traders who likely have paid more in fees. Again, let’s be conservative and assume the average person in this group pays about $3,000 in fees (I know a few people with higher volume than myself who have paid five-figure amounts in fees, so I’m confident that this is conservative.) That would suggest $15,000,000 in revenue for Kalshi so far in 2025, and that’s just from the population of traders who have greater order flow than myself. Damn.\nOf course, this isn’t very scientific; 5,000 was a guesstimate and I’m also assuming everyone else is paying fees at the same rate. The funny thing is that I actually believe I’m paying fees at a smaller rate than others. My market making/arbitrage strategies are almost all based on resting orders as opposed to immediately clearing orders, and resting orders incur fewer fees than clearing orders. AND we’re not accounting for the LARGE majority of traders that are trading in smaller volume than me. That would suggest that Kalshi’s total revenue in 2025 is a much, much higher number, but I digress.\nAnother quick sidepoint: this helps makes sense as to why the Kalshi team is so responsive. I’ve submitted a few tickets to customer support and they always surprised me with how quickly they responded. If 5,000 people are generating them 8-figures in fees, then it makes sense that they would coddle, encourage, and care for them as much as possible. Besides, the people who care enough to submit tickets and complain are usually high-volume traders.\n\n\nNow, let’s look at some basic statistics. How about some frequencies? More specifically, the frequency with which I’m trading. Each number below represents the total count of trades completed.\n\n\nShow code\nKalshi25$Month &lt;- factor(Kalshi25$Month, \n                         levels = month.name, ordered = TRUE)\n\nmonth_counts &lt;- table(Kalshi25$Month)\n\n\nmonth_counts |&gt;\n  as.data.frame() |&gt;\n  setNames(c(\"Month\", \"Count\")) |&gt;\n  gt() |&gt;\n  tab_header(\n    title = \"Trades by Month\"\n  )\n\n\n\n\n\n\n\n\nTrades by Month\n\n\nMonth\nCount\n\n\n\n\nJanuary\n14\n\n\nFebruary\n425\n\n\nMarch\n1198\n\n\nApril\n2107\n\n\nMay\n6909\n\n\nJune\n230\n\n\nJuly\n0\n\n\nAugust\n0\n\n\nSeptember\n0\n\n\nOctober\n0\n\n\nNovember\n0\n\n\nDecember\n0\n\n\n\n\n\n\n\nShow code\n\nKalshi25$DayOfWeek &lt;- factor(Kalshi25$DayOfWeek, \n                             levels = c(\"Monday\", \"Tuesday\", \"Wednesday\", \"Thursday\", \"Friday\", \"Saturday\", \"Sunday\"), \n                             ordered = TRUE)\n\nday_counts &lt;- table(Kalshi25$DayOfWeek)\n\nday_counts |&gt;\n  as.data.frame() |&gt;\n  setNames(c(\"Day\", \"Count\")) |&gt;\n  gt() |&gt;\n  tab_header(\n    title = \"Trades by Day\"\n  )\n\n\n\n\n\n\n\n\nTrades by Day\n\n\nDay\nCount\n\n\n\n\nMonday\n873\n\n\nTuesday\n1400\n\n\nWednesday\n1729\n\n\nThursday\n1228\n\n\nFriday\n1298\n\n\nSaturday\n1843\n\n\nSunday\n2512\n\n\n\n\n\n\n\nI already knew this, but the increasing rate with which I’m trading recently is exceptional. I traded more in May than in the four months prior combined (3730 vs 6909.)\nAlso, regarding weekly trends, I view my Kalshi trading rate as having a direct association with how much free time and energy I have that day. Higher trading on weekends as well as Mondays being slow suggest this theory.\nAs for the profitability of these different times, there will be discussions of that later on.\nAnyway, raw numbers are fine, but graphs are better."
+  },
+  {
+    "objectID": "Kalshi/KalshiUpToMay.html#basic-graphs",
+    "href": "Kalshi/KalshiUpToMay.html#basic-graphs",
+    "title": "Kalshi Analysis 2025 (Updated May 31st)",
+    "section": "Basic Graphs",
+    "text": "Basic Graphs\n\nLet’s use a graph to look at the frequency of trading “yes” vs “no” contracts.\n\n\nShow code\nggplot(Kalshi25, aes(x = Direction)) +\n  geom_bar(fill = \"darkblue\", alpha = 0.7, width = 0.6) +\n  geom_text(\n    stat = \"count\", \n    aes(label = after_stat(count)), \n    vjust = -0.5, \n    size = 5, \n    family = \"Courier\",\n    color = \"black\"\n  ) +\n  labs(\n    title = \"Number of Trades by Direction\",\n    x = \"Direction\",\n    y = \"Count\"\n  ) +\n  expand_limits(y = max(table(Kalshi25$Direction)) * 1.1) +\n  theme_minimal(base_size = 15, base_family = \"Courier\") +\n  theme(\n    plot.background = element_rect(fill = \"#FFFFFF\", color = NA),\n    panel.background = element_rect(fill = \"#FFFFFF\", color = NA),\n    plot.title = element_text(hjust = 0.5, face = \"bold\"),\n    axis.title = element_text(face = \"bold\"),\n    axis.text = element_text(color = \"black\"),\n    panel.grid.major.x = element_blank()\n  )\n\n\n\n\n\n\n\n\n\nIt should be surprising that I trade “No” contracts more than “Yes.” “Yes” is usually the more intuitive/easier option. I mean, if you ask John Doe whether he thinks the Thunder or Pacers will win the NBA championship, he doesn’t respond with “The Pacers won’t win.” He says “The Thunder will win.”\nHowever, there’s a reason for this. When I build arbitrages, I tend to build them with “No” orders since “No” orders tend to clear faster. This is because buying the “No” is the same as selling the “Yes”, and people will buy your “Yes” contracts more than the “No” by the aforementioned logic on “Yes” being intuitive.\n\n\nStill, what about actually important information, like trends regarding profitability?\n\n\nShow code\nggplot(Kalshi25, aes(x = Created_Parsed, y = Realized_Profit_Clean)) +\n  geom_hline(yintercept = 0, color = \"gray30\", linetype = \"dashed\", linewidth = 0.7) +\n  geom_point(alpha = 0.6, color = \"darkblue\", size = 2) +\n  scale_y_continuous(labels = dollar_format()) +\n  labs(\n    title = \"Realized Profit by Invidual Trades Over Time\",\n    x = \"Date\",\n    y = \"Realized Profit\"\n  ) +\n  theme_minimal(base_size = 14) +\n  theme(\n    plot.title = element_text(hjust = 0.5, face = \"bold\"),\n    axis.title = element_text(face = \"bold\"),\n    axis.text = element_text(color = \"black\"),\n    panel.grid.minor = element_blank(),\n    panel.grid.major.x = element_line(color = \"gray80\"),\n    panel.grid.major.y = element_line(color = \"gray80\")\n  )\n\n\n\n\n\n\n\n\n\nWell, it’s hard to understand much from this. It’s too zoomed out. It seems to be caused by that massive increase in spread around late May! What’s up with that? Well, in late May, I started building aribtrages on the baseball markets. This leads to misleading numbers, since it’s counting both the $1,000 loss and $1,050 profit as individual trades (these are placeholder numbers that are realistic examples of volume/profit.) As proof, look at the following list of my five largest profits and the five largest losses.\n\n\nShow code\ncleaned_df &lt;- Kalshi25[!is.na(Kalshi25$Realized_Profit_Clean), ]\n\ntop_wins &lt;- cleaned_df %&gt;% \n  arrange(desc(Realized_Profit_Clean)) %&gt;%\n  slice_head(n = 5)\n\ntop_losses &lt;- cleaned_df %&gt;% \n  arrange(Realized_Profit_Clean) %&gt;%\n  slice_head(n = 5)\n\nbiggest_outliers &lt;- bind_rows(top_wins, top_losses)\n\n# Format for output\nbiggest_outliers %&gt;%\n  select(Date = Created_Parsed, Profit = Realized_Profit_Clean, Ticker) %&gt;%\n  mutate(\n    Date = format(Date, \"%b %d, %Y %I:%M %p\"),\n    Profit = dollar(Profit)\n  ) %&gt;%\n  kable(caption = \"Top 5 Gains and Losses by Trade\", align = \"c\") %&gt;%\n  kable_styling(full_width = FALSE, bootstrap_options = c(\"striped\", \"hover\", \"condensed\"))\n\n\n\nTop 5 Gains and Losses by Trade\n\n\nDate\nProfit\nTicker\n\n\n\n\nMay 24, 2025 01:12 AM\n$1,108.76\nKXMLBGAME-25MAY23LADNYM-NYM\n\n\nMay 25, 2025 02:08 AM\n$989.89\nKXMLBGAME-25MAY24PHIATH-ATH\n\n\nMay 25, 2025 01:06 AM\n$970.99\nKXMLBGAME-25MAY24MIALAA-LAA\n\n\nMay 30, 2025 01:02 AM\n$961.49\nKXMLBGAME-25MAY29WSHSEA-SEA\n\n\nMay 24, 2025 09:34 PM\n$830.57\nKXMLBGAME-25MAY24BALBOSG2-BOS\n\n\nMay 24, 2025 01:12 AM\n-$1,042.82\nKXMLBGAME-25MAY23LADNYM-LAD\n\n\nMay 30, 2025 01:02 AM\n-$1,021.02\nKXMLBGAME-25MAY29WSHSEA-WSH\n\n\nMay 25, 2025 01:06 AM\n-$933.90\nKXMLBGAME-25MAY24MIALAA-MIA\n\n\nMay 25, 2025 02:08 AM\n-$870.41\nKXMLBGAME-25MAY24PHIATH-PHI\n\n\nMay 26, 2025 07:22 PM\n-$815.66\nKXMLBGAME-25MAY26CWSNYM-NYM\n\n\n\n\n\n\n\n See how I made $1,108 on the Dodgers/Mets game on May 23rd, but lost $1,042 on that same game? I find this misleading and worry it will skew results/visualizations. It would be more accurate to portray these two trades as one (in this case, that means having one data point for the “KXMLBGAME-25MAY23LADNYM” ticker with a profit of $66.) So, let’s do that; let’s mutate the data.\n\n\nClick below to view mutation steps taken\n\n\nShow code\n# Baseball Arbitrages\nbaseball_df &lt;- Kalshi25 %&gt;%\n  filter(str_starts(Ticker, \"KXMLBGAME\")) %&gt;%\n  filter(!is.na(Realized_Profit_Clean)) %&gt;%\n  mutate(\n    GameID = str_replace(Ticker, \"-[^-]+$\", \"\"),\n    Contracts = as.numeric(Contracts)  # Ensure numeric within pipeline\n  )\n\nbaseball_collapsed &lt;- baseball_df %&gt;%\n  group_by(GameID) %&gt;%\n  summarise(\n    Ticker = first(GameID),\n    Realized_Profit_Clean = sum(Realized_Profit_Clean, na.rm = TRUE),\n    Contracts = sum(Contracts, na.rm = TRUE),\n    Created_Parsed = min(Created_Parsed, na.rm = TRUE),\n    .groups = \"drop\"\n  )\n\nnon_baseball_df &lt;- Kalshi25 %&gt;%\n  filter(!str_starts(Ticker, \"KXMLBGAME\"))\n\nKalshi25_arb &lt;- bind_rows(\n  non_baseball_df,\n  baseball_collapsed\n) %&gt;%\n  arrange(Created_Parsed)\n\n# WNBA Arbitrages\nwomensbball &lt;- Kalshi25_arb %&gt;%\n  filter(str_starts(Ticker, \"KXWNBAGAME\")) %&gt;%\n  filter(!is.na(Realized_Profit_Clean)) %&gt;%\n  mutate(\n    GameID = str_replace(Ticker, \"-[^-]+$\", \"\"),\n    Contracts = as.numeric(Contracts)\n  )\n\nwomensbball_collapsed &lt;- womensbball %&gt;%\n  group_by(GameID) %&gt;%\n  summarise(\n    Ticker = first(GameID),\n    Realized_Profit_Clean = sum(Realized_Profit_Clean, na.rm = TRUE),\n    Contracts = sum(Contracts, na.rm = TRUE),\n    Created_Parsed = min(Created_Parsed, na.rm = TRUE),\n    .groups = \"drop\"\n  )\n\nnon_womensbball &lt;- Kalshi25_arb %&gt;%\n  filter(!str_starts(Ticker, \"KXWNBAGAME\"))\n\nKalshi25_arb &lt;- bind_rows(\n  non_womensbball,\n  womensbball_collapsed\n) %&gt;%\n  arrange(Created_Parsed)\n\n\n\n\nAlright, take two. Let’s look at the biggest losses and wins now that we’ve accounted for arbitrages.\n\n\nShow code\ntop_wins_no_arb &lt;- Kalshi25_arb |&gt;\n  arrange(desc(Realized_Profit_Clean)) |&gt;\n  slice_head(n = 5)\n\ntop_losses_no_arb &lt;- Kalshi25_arb |&gt;\n  arrange(Realized_Profit_Clean) |&gt;\n  slice_head(n = 5)\n\nbiggest_outliers_no_arb &lt;- bind_rows(top_wins_no_arb, top_losses_no_arb)\n\nbiggest_outliers_no_arb |&gt;\n  select(Date = Created_Parsed, Profit = Realized_Profit_Clean, Ticker) %&gt;%\n  mutate(\n    Date = format(Date, \"%b %d, %Y %I:%M %p\"),\n    Profit = dollar(Profit)\n  ) %&gt;%\n  kable(caption = \"Top 5 Gains and Losses by Trade With Arbitrages Combined\", align = \"c\") %&gt;%\n  kable_styling(full_width = FALSE, bootstrap_options = c(\"striped\", \"hover\", \"condensed\"))\n\n\n\nTop 5 Gains and Losses by Trade With Arbitrages Combined\n\n\nDate\nProfit\nTicker\n\n\n\n\nFeb 02, 2025 05:46 PM\n$268.80\nKXGRAMBCS-67-TA\n\n\nMar 21, 2025 09:32 PM\n$181.14\nKXPRESLEAVESK-25-APR\n\n\nApr 07, 2025 10:11 PM\n$165.20\nKXMARMAD-25-HOU\n\n\nApr 25, 2025 12:40 AM\n$150.00\nKXNBAGAME-25APR24OKCMEM-OKC\n\n\nMay 24, 2025 10:19 PM\n$109.21\nKXMLBGAME-25MAY24PHIATH\n\n\nApr 04, 2025 11:52 AM\n-$286.66\nKXPRESLEAVESK-25-MAY\n\n\nMar 23, 2025 11:19 AM\n-$181.83\nKXAPPRANKFREE-25MAR23-NCA\n\n\nMay 21, 2025 09:23 PM\n-$172.18\nKXTRUMPMENTION-25MAY21-REF\n\n\nMay 21, 2025 02:58 PM\n-$121.52\nKXMLBGAME-25MAY21BALMIL\n\n\nApr 20, 2025 05:59 PM\n-$77.23\nKXMLBGAME-25APR20SFLAA\n\n\n\n\n\n\n\n Ok! We’re back in buisness. As a quick disclaimer, the “ticker” variable is the ID for the market that the trade took place in. I know the “ticker” ID can be difficult to understand without context, but I can use them to recall what these trades were.\nNotably, my second-most-profitable trade was on the South Korean presidency market, for $181, on Mar 21. Not to be outdone, I quickly lost $286 two weeks later on the same market on Apr 04. Impressive.\nIt’s cool to see how the largest profits and losses come from markets where I would wait for resolution, as opposed to trading up and down. It makes sense. For example, sports markets are heavily botted and very efficient (i.e. impossible to market-make on) so I would just buy a position and hold (what’s that, gambling?) This is evidenced by 2 of the 5 most profitable trades being in basketball markets.\nLastly, my largest win came from a market with the ticker “KXGRAMBCS-67-TA”. After phoning a friend, I recalled that this was from the Grammy market. Funny enough, my largest win comes from a really boring and unimpressive strategy. All I did here was read a Rolling Stone’s article predicting the Grammy winners and see that one of their predicted winners (The Architect for Country Song of the Year) was only given 4% odds. I trust Rolling Stones more than the Kalshi masses when it comes to the Grammys, so I threw $11 on it. From that, we get the $268 profit. Below is my Kalshi-generated receipt.\n\n\n\n\n\n\n\n\n\nThere are stories behind each of these trades (one would imagine so, each of these numbers are a lot of money to lose/gain) but I won’t bore you.\n\n\nNow that we’ve combined arbitrages and discussed outliers, let’s move on past the outliers and zoom in on the scatterplot.\n\n\nShow code\nfiltered_df &lt;- Kalshi25_arb %&gt;%\n  filter(Created_Parsed &gt;= as.POSIXct(\"2025-02-01\"))\n\nggplot(filtered_df, aes(x = Created_Parsed, y = Realized_Profit_Clean)) +\n  geom_hline(yintercept = 0, color = \"gray30\", linetype = \"dashed\", linewidth = 0.7) +\n  geom_point(alpha = 0.6, color = \"darkblue\", size = 2) +\n  scale_y_continuous(labels = dollar_format()) +\n  coord_cartesian(ylim = c(-10, 10)) +\n  labs(\n    title = \"Zoomed-In Profit by Invidual Trades Over Time\",\n    x = \"Date\",\n    y = \"Realized Profit\"\n  ) +\n  theme_minimal(base_size = 14) +\n  theme(\n    plot.title = element_text(hjust = 0.5, face = \"bold\"),\n    axis.title = element_text(face = \"bold\"),\n    axis.text = element_text(color = \"black\"),\n    panel.grid.minor = element_blank(),\n    panel.grid.major.x = element_line(color = \"gray80\"),\n    panel.grid.major.y = element_line(color = \"gray80\")\n  )\n\n\n\n\n\n\n\n\n\nMuch better than the previous scatterplot. The first thing that jumps out to me is how clustered these trades are. These vertical columns of trades exemplify how heavily I relied on random profitable markets that would pop up and then go away. I wasn’t doing daily, consistent trading, as much as I was sporadic. For example, these columns in late March are different March Madness games that I found profitable (and correctly so, as shown by the columns being largely above the $0 line.)\nOther things:\n\nAgain, increased trading as time goes on.\nSoooooo many trades were net-neutral. The central axis is basically blue because of how many dots are consistently layered over one another.\n\nWhat about looking at my best/worst markets?"
+  },
+  {
+    "objectID": "Kalshi/KalshiUpToMay.html#market-trends",
+    "href": "Kalshi/KalshiUpToMay.html#market-trends",
+    "title": "Kalshi Analysis 2025 (Updated May 31st)",
+    "section": "Market Trends",
+    "text": "Market Trends\n1. Markets organized by my highest trade quantity.\n\n\nShow code\nKalshi25_arb |&gt;\n  filter(!is.na(Ticker), !is.na(Realized_Profit_Clean)) |&gt;\n  group_by(Ticker) |&gt;\n  summarize(\n    Trades = n(),\n    Total_Profit = sum(Realized_Profit_Clean),\n    Avg_Profit_Per_Trade = mean(Realized_Profit_Clean)\n  ) |&gt;\n  arrange(desc(Trades)) |&gt;\n  slice_head(n = 10) |&gt;\n  kable(digits = 2, format = \"markdown\", caption = \"Trade Summary by Quantity\")\n\n\n\nTrade Summary by Quantity\n\n\n\n\n\n\n\n\nTicker\nTrades\nTotal_Profit\nAvg_Profit_Per_Trade\n\n\n\n\nKXPGA-25-SS\n559\n477.9\n0.86\n\n\nKXMASTERS-25-JROS\n555\n532.5\n0.96\n\n\nKXNBASERIES-25DENOKC-DEN\n423\n307.3\n0.73\n\n\nKXNHLGAME-25MAY28FLACAR-FLA\n306\n185.5\n0.61\n\n\nKXNBASERIES-25DENOKC-OKC\n248\n160.5\n0.65\n\n\nKXNBASERIES-25INDCLE-IND\n225\n168.1\n0.75\n\n\nKXNBASERIES-25INDCLE-CLE\n208\n131.3\n0.63\n\n\nKXNBASERIES-25NYKBOS-NYK\n195\n226.8\n1.16\n\n\nKXMASTERS-25-BD\n166\n85.1\n0.51\n\n\nKXNBASERIES-25MINLAL-LAL\n118\n53.2\n0.45\n\n\n\n\n\n 2. Markets organized by highest profit.\n\n\nShow code\nKalshi25_arb |&gt;\n  filter(!is.na(Ticker), !is.na(Realized_Profit_Clean)) |&gt;\n  group_by(Ticker) |&gt;\n  summarize(\n    Trades = n(),\n    Total_Profit = sum(Realized_Profit_Clean),\n    Avg_Profit_Per_Trade = mean(Realized_Profit_Clean)\n  ) |&gt;\n  arrange(desc(Total_Profit)) |&gt;\n  slice_head(n = 10) |&gt;\n  kable(digits = 2, format = \"markdown\", caption = \"Trade Summary by Net Profit\")\n\n\n\nTrade Summary by Net Profit\n\n\n\n\n\n\n\n\nTicker\nTrades\nTotal_Profit\nAvg_Profit_Per_Trade\n\n\n\n\nKXMASTERS-25-JROS\n555\n532\n0.96\n\n\nKXPGA-25-SS\n559\n478\n0.86\n\n\nKXNBASERIES-25DENOKC-DEN\n423\n307\n0.73\n\n\nKXGRAMBCS-67-TA\n3\n269\n89.60\n\n\nKXNBASERIES-25NYKBOS-NYK\n195\n227\n1.16\n\n\nKXNHLGAME-25MAY28FLACAR-FLA\n306\n186\n0.61\n\n\nKXPRESLEAVESK-25-APR\n26\n182\n7.00\n\n\nKXNBASERIES-25INDCLE-IND\n225\n168\n0.75\n\n\nKXMARMAD-25-HOU\n2\n165\n82.60\n\n\nKXNBASERIES-25DENOKC-OKC\n248\n161\n0.65\n\n\n\n\n\n Between the two lists, there’s a clear winner here: the Masters market. 1st in total profit ($617 if you combine the two sub-markets) and 1st in quantity of trades. This is made more impressive by the fact that I only traded on the Masters market for one day (and what a great day that was.)\nNow I have something else I’d like to test. I only gamble (casting a singular trade and holding until market resolution) when I believe I have significant edge over the given odds - when I believe a market is mispriced. However, is this true?\n\nLet’s see what my profit looks like in markets where I only did a singular trade.\n\n\nShow code\nKalshi25_arb |&gt;\n  filter(!is.na(Ticker)) |&gt;\n  group_by(Ticker) |&gt;\n  mutate(Trades = n()) |&gt;\n  ungroup() |&gt;\n  filter(Trades == 1) |&gt;\n  summarize(\n    Avg_Profit_Single_Trade = mean(Realized_Profit_Clean)\n  ) |&gt;\n  kable(digits = 2, caption = \"Average Profit for Gambles\", align = \"c\") |&gt;\n  kable_styling(full_width = FALSE, bootstrap_options = c(\"striped\", \"hover\", \"condensed\"))\n\n\n\nAverage Profit for Gambles\n\n\nAvg_Profit_Single_Trade\n\n\n\n\n7.03\n\n\n\n\n\n\n\nSince my gambles are (on average) profitable and (supposedly) thought-through, can I still be classified as a degenerate gambler? Yes, yes I can.\nSidenote: There are two caveats to this statistic. \n\nThere are some “gambles” (previously defined as buying a position and holding) that aren’t included in this calculation. This is because I filtered for markets where I only did a single trade. Not every “gamble” is captured this way. For example, I may have bought multiple “gambles” in a market, which would make it register as having had multiple trades. However, I don’t have a way of discerning which multi-trade markets are purely gambling vs. trading, so I went with only the markets where I was 100% sure of being gambles. In other words, all single-trade markets are gambles, but not all gambles are single-trade markets. \nPartly caused by the above phenomenon, I have a mildly low sample size (158). This makes me less certain that I’m profitable with gambles.\n\n\n\nMoving on, let’s look at when I have done my best and my worst trading.\n\n\nShow code\nKalshi25_arb$DayOfWeek &lt;- factor(Kalshi25_arb$DayOfWeek, ordered = FALSE)\nKalshi25_arb &lt;- Kalshi25_arb |&gt;\n  mutate(\n    TimeOfDay = case_when(\n      Hour %in% c(8:12) ~ \"Morning\",\n      Hour %in% c(13:17) ~ \"Afternoon\",\n      Hour %in% c(18:20) ~ \"Evening\",\n      Hour %in% c(21, 22, 23, 0) ~ \"Night\",\n      Hour %in% c(1:7) ~ \"Too-Late\",\n    ),\n    TimeOfDay = fct_relevel(TimeOfDay, \"Morning\", \"Afternoon\", \"Evening\", \"Night\", \"Too-Late\")\n  )\n\nmodel_profit_time &lt;- lm(Average_Price ~ 0 + TimeOfDay, data = Kalshi25_arb)\nmodel_profit_day &lt;- lm(Average_Price ~ 0 + DayOfWeek, data = Kalshi25_arb)\nmodel_profit_timeday &lt;- lm(Average_Price ~ 0 + TimeOfDay * DayOfWeek, data = Kalshi25_arb)\n\ntidy_time &lt;- broom::tidy(model_profit_time)\ntidy_day &lt;- broom::tidy(model_profit_day)\ntidy_timeday &lt;- broom::tidy(model_profit_timeday)\n\ntidy_time |&gt;\n  mutate(term = str_replace(term, \"TimeOfDay\", \"\")) |&gt;\n  arrange(desc(estimate)) |&gt;\n  kable(digits = 2, caption = \"Effect of Time of Day on Average Price\", align = \"c\") |&gt;\n  kable_styling(full_width = FALSE)\n\n\n\nEffect of Time of Day on Average Price\n\n\nterm\nestimate\nstd.error\nstatistic\np.value\n\n\n\n\nAfternoon\n49.6\n0.58\n85.6\n0\n\n\nNight\n49.4\n0.50\n98.6\n0\n\n\nEvening\n49.4\n0.74\n66.6\n0\n\n\nMorning\n47.1\n1.19\n39.7\n0\n\n\nToo-Late\n45.7\n1.82\n25.2\n0\n\n\n\n\n\n\n\nShow code\n\ntidy_day |&gt;\n  mutate(term = str_replace(term, \"DayOfWeek\", \"\")) |&gt;\n  arrange(desc(estimate)) |&gt;\n  kable(digits = 2, caption = \"Effect of Day of Week on Average Price\", align = \"c\") |&gt;\n  kable_styling(full_width = FALSE)\n\n\n\nEffect of Day of Week on Average Price\n\n\nterm\nestimate\nstd.error\nstatistic\np.value\n\n\n\n\nSunday\n50.5\n0.62\n82.0\n0\n\n\nFriday\n49.9\n0.85\n58.9\n0\n\n\nThursday\n49.6\n1.06\n46.9\n0\n\n\nTuesday\n49.4\n0.83\n59.6\n0\n\n\nSaturday\n49.1\n0.83\n59.1\n0\n\n\nWednesday\n48.3\n0.84\n57.6\n0\n\n\nMonday\n42.5\n1.32\n32.2\n0\n\n\n\n\n\n\n\n Using the following time groupings:\n\n8am - noon = “Morning”\n1pm - 5pm = “Afternoon”\n6pm - 8pm = “Evening”\n9pm - midnight = “Night”\n1am - 7am = “Too-Late” (affectionately)\n\nI constructed a linear model to predict the profitability of a trading session on an individual market (irrespective of quantity of contracts) based on time of day, day of the week, and both. The winners and losers?\n\nThe most historically profitable day: Thursday, with average profit being $54.15 \nThe least historically profitable day: Monday, with average profit being $38.39\nThe most historically profitable time of day: Afternoon, with average profit being $49.79 \nThe least historically profitable time of day: “TooLate”, with average profit being $42.69 (Looks like late-night trading hasn’t treated me well.)\n\nNow, it’s important to note that this is not necessarily advice as to when I should be trading. Any junior statistician should be able to differentiate between association and causation. Different opportunities are based in different times of day, as well as the fact that I trade at different volumes depending on the opportunities, which skews this result. This is merely a breakdown to understand when my money has been made and lost over the past four months.\nWhile Thursday is historically the most profitable day and Afternoon is historically the most profitable time of day, this doesn’t necessarily mean that Thursday afternoon is historically the most profitable combination.\n\n\nLet’s look at the interaction between the time of day and the day of the week in relation to profit.\n\n\nShow code\ntidy_timeday |&gt;\n  filter(str_detect(term, \"TimeOfDay\") & str_detect(term, \"DayOfWeek\")) |&gt;\n  mutate(\n    TimeOfDay = str_extract(term, \"TimeOfDay\\\\w+\"),\n    DayOfWeek = str_extract(term, \"DayOfWeek\\\\w+\"),\n    TimeOfDay = str_remove(TimeOfDay, \"TimeOfDay\"),\n    DayOfWeek = str_remove(DayOfWeek, \"DayOfWeek\")\n  ) |&gt;\n  select(TimeOfDay, DayOfWeek, estimate, std.error, p.value) |&gt;\n  arrange(desc(estimate)) |&gt;\n  kable(\n    digits = 2,\n    caption = \"Most Profitable Time × Day Combinations (Average Price)\",\n    align = \"c\"\n  ) |&gt;\n  kable_styling(full_width = FALSE, bootstrap_options = c(\"striped\", \"hover\", \"condensed\"))\n\n\n\nMost Profitable Time × Day Combinations (Average Price)\n\n\nTimeOfDay\nDayOfWeek\nestimate\nstd.error\np.value\n\n\n\n\nToo\nSaturday\n18.34\n11.49\n0.11\n\n\nAfternoon\nSaturday\n16.44\n9.41\n0.08\n\n\nAfternoon\nSunday\n15.95\n11.04\n0.15\n\n\nToo\nSunday\n11.01\n13.74\n0.42\n\n\nNight\nSunday\n10.08\n11.07\n0.36\n\n\nAfternoon\nWednesday\n6.80\n7.49\n0.36\n\n\nAfternoon\nThursday\n6.02\n7.64\n0.43\n\n\nNight\nSaturday\n5.22\n9.44\n0.58\n\n\nNight\nWednesday\n4.16\n7.01\n0.55\n\n\nEvening\nSaturday\n3.89\n9.49\n0.68\n\n\nEvening\nSunday\n3.54\n11.07\n0.75\n\n\nEvening\nWednesday\n2.07\n8.78\n0.81\n\n\nToo\nWednesday\n-1.09\n11.43\n0.92\n\n\nToo\nThursday\n-1.36\n10.88\n0.90\n\n\nNight\nThursday\n-2.65\n7.32\n0.72\n\n\nAfternoon\nTuesday\n-3.51\n7.57\n0.64\n\n\nAfternoon\nFriday\n-7.16\n7.27\n0.33\n\n\nNight\nTuesday\n-9.77\n7.45\n0.19\n\n\nNight\nFriday\n-9.86\n7.11\n0.17\n\n\nEvening\nThursday\n-10.12\n7.79\n0.19\n\n\nToo\nFriday\n-10.71\n10.50\n0.31\n\n\nEvening\nFriday\n-14.63\n7.34\n0.05\n\n\nEvening\nTuesday\n-19.77\n7.71\n0.01\n\n\nToo\nTuesday\n-22.93\n11.25\n0.04\n\n\n\n\n\n\n\n I’m proven correct! The most profitable combination is Saturday afternoon, not Thursday afternoon. I also find it funny that the most and least profitable combination both involve trading when it’s “toolate”. The moral of the story seems to be I shouldn’t trade late at night on Tuesday.\nAlso, the spread of historical profit is pretty impressive, I didn’t think that there would be this much variance in my historical profitability based on when I’m trading, but that’s why I made this journal. To discover curiosities like that.  Well, that’s all for now. I need to go lose $4,819."
+  }
+]

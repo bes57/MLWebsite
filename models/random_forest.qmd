@@ -1,0 +1,184 @@
+---
+title: "Random Forest"
+format: html
+---
+
+## Model Overview
+
+I used a random forest model to predict weapon-carrying behavior in schools. Random forest is a non-parametric ensemble method that builds many decision trees and combines their predictions. Unlike a single decision tree, which is often unstable and prone to overfitting, random forest improves predictive performance by averaging results across many trees.
+
+## Loading Packages
+
+```{r}
+#| lable: library
+#| output: false
+#install.packages("ranger") 
+
+library(tidyverse)
+library(tidymodels)
+library(here)
+library(rpart.plot)
+library(ranger)
+library(skimr)
+```
+
+## Loading the Data
+
+```{r}
+#| label: Data
+
+analysis_train <- readRDS(here("models", "data", "analysis_train.rds"))
+analysis_test <- readRDS(here("models", "data", "analysis_test.rds"))
+analysis_fold <- readRDS(here("models", "data", "analysis_folds.rds"))
+```
+
+## Data Preprocessing
+
+Before modeling, I created a recipe that:
+
+ - Imputes missing numeric values using the mean
+
+ - Imputes missing categorical values using the mode
+
+ - Converts categorical predictors into dummy variables
+
+```{r}
+#| label: Recipe
+weapon_carry_recipe_rf <-
+  recipe(WeaponCarryingSchool~., data = analysis_train) %>%
+  step_impute_mean(all_numeric_predictors()) %>%
+  step_impute_mode(all_nominal_predictors()) %>%
+  step_dummy(all_nominal_predictors())
+```
+
+## Model Specification
+
+I defined a random forest classifier using the `ranger` engine. I tuned the `mtry` (number of predictors sampled for each split) and `min_n` (minimum node size). I also enabled permutation-based variable importance for interpretation later.
+
+```{r}
+#| label: Specifications
+weapon_carry_spec_rf <- 
+  rand_forest(
+    mtry = tune(), 
+    min_n = tune(),
+    trees = 100) |>  
+  set_mode("classification") |>  
+  set_engine("ranger", 
+             importance = "permutation") 
+```
+
+## Workflow
+
+```{r}
+#| label: Workflow
+weapon_carry_workflow_rf <- 
+  workflow() |> 
+  add_recipe(weapon_carry_recipe_rf) |>  
+  add_model(weapon_carry_spec_rf) 
+```
+
+## Model Tuning
+
+I performed cross-validation to tune the hyperparameters.
+
+```{r}
+#| label: tuning
+#| eval: false
+
+set.seed(46257)
+  
+weapon_tune_rf <- weapon_carry_workflow_rf |> 
+  tune_grid(
+    resamples = analysis_fold,
+    grid = 11)
+
+saveRDS(weapon_tune_rf, here("models", "model_outputs", "weapon_tune.rds"))
+```
+
+```{r}
+#| echo: false
+weapon_tune <- readRDS(here("models", "model_outputs", "weapon_tune.rds"))
+```
+
+## Evaluating Tuning Results
+
+I plotted the results and selected the best model based on ROC AUC.
+
+```{r}
+#| label: determine-best-parameters
+
+show_best(weapon_tune, metric = "roc_auc")
+
+best_plot_rf <- autoplot(weapon_tune)
+
+best_plot_rf
+```
+
+```{r}
+#| label: select-best
+best <- select_best(weapon_tune, metric = "roc_auc")
+
+best
+```
+
+## Finalizing and Fitting the Model
+
+I finalized the workflow with the best hyperparameters and fit it to the training data.
+
+```{r}
+#| label: finalize-wf
+
+final_wf <- finalize_workflow(weapon_carry_workflow_rf, best)
+
+final_wf
+```
+
+```{r}
+#| label: fit
+forest_fit <- fit(final_wf, analysis_train)
+
+forest_fit
+```
+
+## Making Predictions
+
+After all of that, I was finally able to make predictions using the model and test its results.
+
+```{r}
+#| label: predictions-check
+
+weapon_pred <-
+  augment(forest_fit, analysis_train) |>
+  select(WeaponCarryingSchool, .pred_class, .pred_1, .pred_0)
+
+weapon_pred
+```
+
+## ROC Curve and AUC
+
+I visualized model performance with an ROC curve and computed the AUC.
+
+```{r}
+#| label: ROC
+
+roc_plot <-
+  weapon_pred |>
+  roc_curve(truth = WeaponCarryingSchool,
+            .pred_1,
+            event_level = "second") |>
+  autoplot()
+
+roc_plot
+```
+
+```{r}
+weapon_pred |>
+  roc_auc(truth = WeaponCarryingSchool,
+          .pred_1,
+          event_level = "second")
+```
+
+## Results and Interpretation
+The random forest model slightly outperformed my previous models in terms of discriminative ability, achieving an AUC of 0.703. It's interesting to see how different machine learning models perform better/worse than others. The upgrade in predictive power from a singular decision tree (AUC of 0.54) to a random forest (AUC of 0.7) exemplifies the importance of creating multiple models to avoid overfitting and capture more complex relationships. As for the model itself, the model was tuned with a relatively small `mtry` of 2 and a `min_n` of 17, which suggests that shallow trees and minimal predictor sampling worked best to avoid overfitting. It’s likely this reflects the high class imbalance and multicollinearity in the dataset—forcing the model to generalize more simply helped improve its generalization to unseen data.
+
+

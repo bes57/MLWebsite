@@ -1,0 +1,27 @@
+---
+title: "-About Me-"
+---
+
+::: {.profile-container}
+::: {.profile-image}
+![](img/croppedbenny.jpeg){.circle-image}
+:::
+
+::: {.profile-text}
+### I am Benjamin Sherman
+
+As an undergraduate student at Duke University studying Statistical Science and History, I’m passionate about data science, machine learning, and using R to explore complex questions through research and reproducible analysis. In this practice, I use tools like Quarto and RMarkdown to ensure that everything I build is transparent, well-documented, and easy to follow. 
+
+Outside of statistics, some of my interests include jazz piano, bowling, climbing, and college basketball.
+
+## Contact Information:
+Email: bes57@duke.edu
+
+## References:
+*"I wish I was more like Benjamin Sherman."* - Steve Jobs on his deathbed  
+
+## Important Quote:
+*"If you don't like your job, you don't strike! You just go in every day and do it really half-assed. That's the American way."* - Homer Simpson
+
+:::
+:::

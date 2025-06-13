@@ -1,0 +1,291 @@
+---
+title: "Lasso Regression"
+---
+
+## Model Overview
+
+Lasso regression is a statistical model that combines linear/logistic regression with L1 regularization to perform both variable selection and regularization. The term "Lasso" stands for "Least Absolute Shrinkage and Selection Operator." This method is particularly useful when dealing with datasets that have many predictors, as it helps to:  
+
+- Reduce overfitting by penalizing large coefficients  
+
+- Perform automatic feature selection by shrinking some coefficients to exactly zero  
+
+- Handle multicollinearity by selecting only one variable from a group of highly correlated predictors  
+
+
+In this analysis, I used Lasso regression to predict weapon carrying behavior in schools, demonstrating how this method can help identify the most important predictors while maintaining model interpretability.
+
+## Setting Up the Environment
+
+First, I loaded the necessary packages for our analysis.
+
+```{r}
+#| label: packages
+#| output: false
+
+library(here)
+library(tidymodels)
+library(tidyverse)
+```
+
+## Loading the Data
+
+```{r}
+#| label: load-data
+
+analysis_data <- readRDS(here("models", "data", "analysis_data.rds"))
+analysis_train <- readRDS(here("models", "data", "analysis_train.rds"))
+analysis_test <- readRDS(here("models","data", "analysis_test.rds"))
+analysis_folds <- readRDS(here("models", "data", "analysis_folds.rds"))
+```
+
+## Data Preprocessing
+
+Before fitting the model, I needed to preprocess the data. I created a recipe that:  
+
+- Imputes missing values in categorical variables using the mode  
+
+- Imputes missing values in numeric variables using the mean  
+
+- Removes predictors with zero variance  
+
+- Removes highly correlated predictors (correlation threshold = 0.7)  
+
+- Creates dummy variables for categorical predictors  
+
+
+```{r}
+#| label: model-rec
+
+lasso_weapon_carry_recipe <- 
+  recipe(formula = WeaponCarryingSchool ~ ., data = analysis_train) |>
+  step_impute_mode(all_nominal_predictors()) |>
+  step_impute_mean(all_numeric_predictors()) |>
+  step_zv(all_predictors()) |> 
+  step_corr(all_numeric_predictors(), threshold = 0.7) %>% 
+  step_dummy(all_nominal_predictors())
+
+lasso_weapon_carry_recipe
+```
+
+I applied a recipe to transform the data according to these preprocessing steps.
+
+```{r}
+lasso_weapon_carry_recipe %>% 
+  prep() %>% 
+  bake(new_data = analysis_train) 
+```
+
+## Model Specification
+
+I used a logistic regression model with Lasso regularization. The Lasso helps with feature selection by penalizing the absolute size of coefficients. I set `mixture = 1` to specify a pure Lasso model, and I'll go on to tune the penalty parameter to find the optimal level of regularization.
+
+```{r}
+#| label: model-spec
+
+lasso_weapon_carry_spec <-
+  logistic_reg(penalty = tune(), 
+               mixture = 1) |> 
+  set_engine('glmnet')
+
+lasso_weapon_carry_spec
+```
+
+## Creating the Workflow
+
+I combined the recipe and model specification into a single workflow. This ensures that all preprocessing steps are properly applied during both training and prediction.
+
+```{r}
+#| label: model-workflow
+
+lasso_weapon_carry_workflow <-
+  workflow() |>
+  add_recipe(lasso_weapon_carry_recipe) |>
+  add_model(lasso_weapon_carry_spec)
+
+lasso_weapon_carry_workflow
+```
+
+## Model Tuning
+
+To find the optimal penalty value, I created a grid of potential values to test. I used 50 different penalty values, evenly spaced on a logarithmic scale. Afterward, I performed cross-validation to tune and select the penalty parameter that minimized model error.
+
+```{r}
+lambda_grid <- grid_regular(penalty(), levels = 50)
+lambda_grid
+```
+
+```{r}
+#| eval: false
+
+set.seed(2023)
+
+lasso_tune <- 
+  tune_grid(
+  object = lasso_weapon_carry_workflow, 
+  resamples = analysis_folds,
+  grid = lambda_grid, 
+  control = control_resamples(event_level = "second")
+)
+```
+
+```{r}
+#| eval: false
+#| echo: false
+
+saveRDS(lasso_tune, here("models", "model_outputs", "lasso_tune.rds"))
+```
+
+```{r}
+#| echo: false
+
+lasso_tune <- readRDS(here("models", "model_outputs", "lasso_tune.rds"))
+```
+
+
+```{r}
+lasso_tune %>% 
+  collect_metrics()
+```
+
+To view how the model's performance changes with different penalty values, I plotted the lasso model as tuned to different values.
+
+```{r}
+autoplot(lasso_tune)
+```
+
+## Selecting the Best Model
+
+I selected the best model based on the ROC AUC metric, which measures the model's ability to distinguish between classes.
+
+```{r}
+best <- lasso_tune |> 
+  select_best(metric ="roc_auc")
+
+best
+```
+
+Now I created my final workflow with the best penalty value.
+
+```{r}
+final_wf <- finalize_workflow(lasso_weapon_carry_workflow, best)
+
+final_wf
+```
+
+## Fitting the Final Model
+
+To end, I fit the final model on the training data.
+
+```{r}
+#| eval: false
+
+lasso_weapon_fit <- 
+  fit(final_wf, data = analysis_train)
+
+lasso_weapon_fit
+```
+
+```{r}
+#| eval: false
+#| echo: false
+
+saveRDS(lasso_weapon_fit, here("models", "model_outputs", "weapon_fit.rds"))
+```
+
+```{r}
+#| echo: false
+
+lasso_weapon_fit <- readRDS(here("models","model_outputs", "weapon_fit.rds"))
+```
+
+## Model Evaluation
+
+After tuning, I then had to examine the model's predictions on the training data.
+
+```{r}
+lasso_weapon_pred <- 
+  augment(lasso_weapon_fit, analysis_train) |> 
+  select(WeaponCarryingSchool, .pred_class, .pred_1, .pred_0)
+
+lasso_weapon_pred
+```
+
+I visualized the model's performance using an ROC curve, with the AUV value underneath to quantify said performance.
+
+```{r}
+lasso_roc_plot_training <- 
+  lasso_weapon_pred |> 
+  roc_curve(truth = WeaponCarryingSchool, .pred_1, event_level = "second") |> 
+  autoplot()
+
+lasso_roc_plot_training 
+```
+
+```{r}
+lasso_auc_result <- lasso_weapon_pred %>%
+  roc_auc(truth = WeaponCarryingSchool, .pred_1, event_level = "second")
+
+lasso_auc_result
+```
+
+
+## Cross-Validation Results
+
+I fit the model on each cross-validation fold to get a more robust estimate of its performance.
+
+```{r}
+#| eval: false
+
+weapon_fit_resamples <- 
+  fit_resamples(final_wf, resamples = analysis_folds)
+
+weapon_fit_resamples
+```
+
+```{r}
+#| eval: false
+#| echo: false
+
+saveRDS(weapon_fit_resamples, here("models", "model_outputs", "weapon_fit_resamples.rds"))
+```
+
+```{r}
+#| echo: false
+weapon_fit_resamples <- readRDS(here("models","model_outputs", "weapon_fit_resamples.rds"))
+```
+
+Now to examine the cross-validation metrics.
+
+```{r}
+collect_metrics(weapon_fit_resamples)
+```
+
+This 5-fold cross-validation achieved a high accuracy of 95.7%, meaning my model performs well on unseen data.
+
+## Variable Importance
+
+Finally, I looked at the model coefficients to understand which predictors are most important. After listing them, I created a variable importance plot to help visualize the differences.
+
+```{r}
+lasso_weapon_fit |> 
+  extract_fit_parsnip() |> 
+  tidy()
+```
+
+
+```{r}
+library(vip)
+
+lasso_weapon_fit |> 
+  extract_fit_engine() |> 
+  vip() 
+```
+
+## Results and Interpretation
+
+Again, the model fails to be exceptional. In fact, the AUC was slightly smaller than that from my logistic model. Accuracy stayed high at 95.7%, which is expected given the class imbalance. The model is good at predicting who did not carry a weapon but struggles with those who did. However, it's not all bad. The model was successful in reproducing results on unseen data (re: a Brier score of 0.04), and we see a similar importance of variables as in the logistic model. The consistency with which violence-related variables have the highest impact increases my certainty that these are genuine risk factors. 
+
+
+
+
