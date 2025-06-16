@@ -8,7 +8,7 @@ format: html
 Decision tree is a predictive modeling technique that uses a tree-like structure to split data based on feature values. It can be used for both classification and regression tasks. The model uses machine learning to recursively partition the dataset into subsets based on the variable that best separates the data at each step, resulting in a hierarchy of decision rules.
 
 
-## Library
+## Loading Packages
 
 ```{r}
 #| include: true

@@ -28,7 +28,7 @@ library(tidymodels)
 library(tidyverse)
 ```
 
-## Loading the Data
+## Loading Packages
 
 ```{r}
 #| label: load-data
@@ -211,7 +211,7 @@ lasso_weapon_pred <-
 lasso_weapon_pred
 ```
 
-I visualized the model's performance using an ROC curve, with the AUV value underneath to quantify said performance.
+I visualized the model's performance using an ROC curve, with the AUC value underneath to quantify said performance.
 
 ```{r}
 lasso_roc_plot_training <- 

@@ -7,7 +7,7 @@ title: "Logistic Regression"
 
 Logistic regression is used when the dependent variable is binary (0/1, Yes/No, True/False). The model estimates the probability of the dependent variable being 1 given the independent variables.
 
-## Implementation
+## Loading Packages
 
 ```{r}
 #| label: setup
