@@ -15,7 +15,7 @@ Lasso regression is a statistical model that combines linear/logistic regression
 
 In this analysis, I used Lasso regression to predict weapon carrying behavior in schools, demonstrating how this method can help identify the most important predictors while maintaining model interpretability.
 
-## Setting Up the Environment
+## Loading Packages
 
 First, I loaded the necessary packages for our analysis.
 
@@ -28,7 +28,7 @@ library(tidymodels)
 library(tidyverse)
 ```
 
-## Loading Packages
+## Loading the Data
 
 ```{r}
 #| label: load-data
@@ -39,7 +39,7 @@ analysis_test <- readRDS(here("models","data", "analysis_test.rds"))
 analysis_folds <- readRDS(here("models", "data", "analysis_folds.rds"))
 ```
 
-## Data Preprocessing
+## Recipe
 
 Before fitting the model, I needed to preprocess the data. I created a recipe that:  
 

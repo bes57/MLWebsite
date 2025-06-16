@@ -187,7 +187,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#model-overview" id="toc-model-overview" class="nav-link active" data-scroll-target="#model-overview">Model Overview</a></li>
   <li><a href="#loading-packages" id="toc-loading-packages" class="nav-link" data-scroll-target="#loading-packages">Loading Packages</a></li>
   <li><a href="#loading-the-data" id="toc-loading-the-data" class="nav-link" data-scroll-target="#loading-the-data">Loading the Data</a></li>
-  <li><a href="#data-preprocessing" id="toc-data-preprocessing" class="nav-link" data-scroll-target="#data-preprocessing">Data Preprocessing</a></li>
+  <li><a href="#recipe" id="toc-recipe" class="nav-link" data-scroll-target="#recipe">Recipe</a></li>
   <li><a href="#model-specification" id="toc-model-specification" class="nav-link" data-scroll-target="#model-specification">Model Specification</a></li>
   <li><a href="#workflow" id="toc-workflow" class="nav-link" data-scroll-target="#workflow">Workflow</a></li>
   <li><a href="#model-tuning" id="toc-model-tuning" class="nav-link" data-scroll-target="#model-tuning">Model Tuning</a></li>
@@ -246,8 +246,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>analysis_fold <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="fu">here</span>(<span class="st">"models"</span>, <span class="st">"data"</span>, <span class="st">"analysis_folds.rds"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="data-preprocessing" class="level2">
-<h2 class="anchored" data-anchor-id="data-preprocessing">Data Preprocessing</h2>
+<section id="recipe" class="level2">
+<h2 class="anchored" data-anchor-id="recipe">Recipe</h2>
 <p>Before modeling, I created a recipe that:</p>
 <ul>
 <li><p>Imputes missing numeric values using the mean</p></li>
@@ -400,7 +400,7 @@ Mtry:                             2
 Target node size:                 17 
 Variable importance mode:         permutation 
 Splitrule:                        gini 
-OOB prediction error (Brier s.):  0.04008064 </code></pre>
+OOB prediction error (Brier s.):  0.04008117 </code></pre>
 </div>
 </div>
 </section>
@@ -417,16 +417,16 @@ OOB prediction error (Brier s.):  0.04008064 </code></pre>
 <pre><code># A tibble: 14,696 × 4
    WeaponCarryingSchool .pred_class .pred_1 .pred_0
    &lt;fct&gt;                &lt;fct&gt;         &lt;dbl&gt;   &lt;dbl&gt;
- 1 0                    0            0.0482   0.952
- 2 0                    0            0.0424   0.958
- 3 0                    0            0.0214   0.979
- 4 0                    0            0.0260   0.974
- 5 0                    0            0.137    0.863
- 6 0                    0            0.0482   0.952
- 7 0                    0            0.0251   0.975
- 8 0                    0            0.0251   0.975
- 9 0                    0            0.0403   0.960
-10 0                    0            0.0521   0.948
+ 1 0                    0            0.0471   0.953
+ 2 0                    0            0.0409   0.959
+ 3 0                    0            0.0221   0.978
+ 4 0                    0            0.0305   0.969
+ 5 0                    0            0.136    0.864
+ 6 0                    0            0.0471   0.953
+ 7 0                    0            0.0260   0.974
+ 8 0                    0            0.0260   0.974
+ 9 0                    0            0.0378   0.962
+10 0                    0            0.0564   0.944
 # ℹ 14,686 more rows</code></pre>
 </div>
 </div>
@@ -460,7 +460,7 @@ OOB prediction error (Brier s.):  0.04008064 </code></pre>
 <pre><code># A tibble: 1 × 3
   .metric .estimator .estimate
   &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt;
-1 roc_auc binary         0.705</code></pre>
+1 roc_auc binary         0.704</code></pre>
 </div>
 </div>
 </section>

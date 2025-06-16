@@ -88,7 +88,7 @@
     "href": "models/lasso.html#model-evaluation",
     "title": "Lasso Regression",
     "section": "Model Evaluation",
-    "text": "Model Evaluation\nAfter tuning, I then had to examine the model’s predictions on the training data.\n\nlasso_weapon_pred &lt;- \n  augment(lasso_weapon_fit, analysis_train) |&gt; \n  select(WeaponCarryingSchool, .pred_class, .pred_1, .pred_0)\n\nlasso_weapon_pred\n\n# A tibble: 14,696 × 4\n   WeaponCarryingSchool .pred_class .pred_1 .pred_0\n   &lt;fct&gt;                &lt;fct&gt;         &lt;dbl&gt;   &lt;dbl&gt;\n 1 0                    0            0.0368   0.963\n 2 0                    0            0.0410   0.959\n 3 0                    0            0.0253   0.975\n 4 0                    0            0.0325   0.968\n 5 0                    0            0.125    0.875\n 6 0                    0            0.0368   0.963\n 7 0                    0            0.0208   0.979\n 8 0                    0            0.0208   0.979\n 9 0                    0            0.0458   0.954\n10 0                    0            0.0529   0.947\n# ℹ 14,686 more rows\n\n\nI visualized the model’s performance using an ROC curve, with the AUV value underneath to quantify said performance.\n\nlasso_roc_plot_training &lt;- \n  lasso_weapon_pred |&gt; \n  roc_curve(truth = WeaponCarryingSchool, .pred_1, event_level = \"second\") |&gt; \n  autoplot()\n\nlasso_roc_plot_training \n\n\n\n\n\n\n\n\n\nlasso_auc_result &lt;- lasso_weapon_pred %&gt;%\n  roc_auc(truth = WeaponCarryingSchool, .pred_1, event_level = \"second\")\n\nlasso_auc_result\n\n# A tibble: 1 × 3\n  .metric .estimator .estimate\n  &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt;\n1 roc_auc binary         0.689"
+    "text": "Model Evaluation\nAfter tuning, I then had to examine the model’s predictions on the training data.\n\nlasso_weapon_pred &lt;- \n  augment(lasso_weapon_fit, analysis_train) |&gt; \n  select(WeaponCarryingSchool, .pred_class, .pred_1, .pred_0)\n\nlasso_weapon_pred\n\n# A tibble: 14,696 × 4\n   WeaponCarryingSchool .pred_class .pred_1 .pred_0\n   &lt;fct&gt;                &lt;fct&gt;         &lt;dbl&gt;   &lt;dbl&gt;\n 1 0                    0            0.0368   0.963\n 2 0                    0            0.0410   0.959\n 3 0                    0            0.0253   0.975\n 4 0                    0            0.0325   0.968\n 5 0                    0            0.125    0.875\n 6 0                    0            0.0368   0.963\n 7 0                    0            0.0208   0.979\n 8 0                    0            0.0208   0.979\n 9 0                    0            0.0458   0.954\n10 0                    0            0.0529   0.947\n# ℹ 14,686 more rows\n\n\nI visualized the model’s performance using an ROC curve, with the AUC value underneath to quantify said performance.\n\nlasso_roc_plot_training &lt;- \n  lasso_weapon_pred |&gt; \n  roc_curve(truth = WeaponCarryingSchool, .pred_1, event_level = \"second\") |&gt; \n  autoplot()\n\nlasso_roc_plot_training \n\n\n\n\n\n\n\n\n\nlasso_auc_result &lt;- lasso_weapon_pred %&gt;%\n  roc_auc(truth = WeaponCarryingSchool, .pred_1, event_level = \"second\")\n\nlasso_auc_result\n\n# A tibble: 1 × 3\n  .metric .estimator .estimate\n  &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt;\n1 roc_auc binary         0.689"
   },
   {
     "objectID": "models/lasso.html#cross-validation-results",
@@ -473,21 +473,21 @@
     "href": "models/random_forest.html#finalizing-and-fitting-the-model",
     "title": "Random Forest",
     "section": "Finalizing and Fitting the Model",
-    "text": "Finalizing and Fitting the Model\nI finalized the workflow with the best hyperparameters and fit it to the training data.\n\nfinal_wf &lt;- finalize_workflow(weapon_carry_workflow_rf, best)\n\nfinal_wf\n\n══ Workflow ════════════════════════════════════════════════════════════════════\nPreprocessor: Recipe\nModel: rand_forest()\n\n── Preprocessor ────────────────────────────────────────────────────────────────\n3 Recipe Steps\n\n• step_impute_mean()\n• step_impute_mode()\n• step_dummy()\n\n── Model ───────────────────────────────────────────────────────────────────────\nRandom Forest Model Specification (classification)\n\nMain Arguments:\n  mtry = 2\n  trees = 100\n  min_n = 17\n\nEngine-Specific Arguments:\n  importance = permutation\n\nComputational engine: ranger \n\n\n\nforest_fit &lt;- fit(final_wf, analysis_train)\n\nforest_fit\n\n══ Workflow [trained] ══════════════════════════════════════════════════════════\nPreprocessor: Recipe\nModel: rand_forest()\n\n── Preprocessor ────────────────────────────────────────────────────────────────\n3 Recipe Steps\n\n• step_impute_mean()\n• step_impute_mode()\n• step_dummy()\n\n── Model ───────────────────────────────────────────────────────────────────────\nRanger result\n\nCall:\n ranger::ranger(x = maybe_data_frame(x), y = y, mtry = min_cols(~2L,      x), num.trees = ~100, min.node.size = min_rows(~17L, x),      importance = ~\"permutation\", num.threads = 1, verbose = FALSE,      seed = sample.int(10^5, 1), probability = TRUE) \n\nType:                             Probability estimation \nNumber of trees:                  100 \nSample size:                      14696 \nNumber of independent variables:  10 \nMtry:                             2 \nTarget node size:                 17 \nVariable importance mode:         permutation \nSplitrule:                        gini \nOOB prediction error (Brier s.):  0.04008064"
+    "text": "Finalizing and Fitting the Model\nI finalized the workflow with the best hyperparameters and fit it to the training data.\n\nfinal_wf &lt;- finalize_workflow(weapon_carry_workflow_rf, best)\n\nfinal_wf\n\n══ Workflow ════════════════════════════════════════════════════════════════════\nPreprocessor: Recipe\nModel: rand_forest()\n\n── Preprocessor ────────────────────────────────────────────────────────────────\n3 Recipe Steps\n\n• step_impute_mean()\n• step_impute_mode()\n• step_dummy()\n\n── Model ───────────────────────────────────────────────────────────────────────\nRandom Forest Model Specification (classification)\n\nMain Arguments:\n  mtry = 2\n  trees = 100\n  min_n = 17\n\nEngine-Specific Arguments:\n  importance = permutation\n\nComputational engine: ranger \n\n\n\nforest_fit &lt;- fit(final_wf, analysis_train)\n\nforest_fit\n\n══ Workflow [trained] ══════════════════════════════════════════════════════════\nPreprocessor: Recipe\nModel: rand_forest()\n\n── Preprocessor ────────────────────────────────────────────────────────────────\n3 Recipe Steps\n\n• step_impute_mean()\n• step_impute_mode()\n• step_dummy()\n\n── Model ───────────────────────────────────────────────────────────────────────\nRanger result\n\nCall:\n ranger::ranger(x = maybe_data_frame(x), y = y, mtry = min_cols(~2L,      x), num.trees = ~100, min.node.size = min_rows(~17L, x),      importance = ~\"permutation\", num.threads = 1, verbose = FALSE,      seed = sample.int(10^5, 1), probability = TRUE) \n\nType:                             Probability estimation \nNumber of trees:                  100 \nSample size:                      14696 \nNumber of independent variables:  10 \nMtry:                             2 \nTarget node size:                 17 \nVariable importance mode:         permutation \nSplitrule:                        gini \nOOB prediction error (Brier s.):  0.04008117"
   },
   {
     "objectID": "models/random_forest.html#making-predictions",
     "href": "models/random_forest.html#making-predictions",
     "title": "Random Forest",
     "section": "Making Predictions",
-    "text": "Making Predictions\nAfter all of that, I was finally able to make predictions using the model and test its results.\n\nweapon_pred &lt;-\n  augment(forest_fit, analysis_train) |&gt;\n  select(WeaponCarryingSchool, .pred_class, .pred_1, .pred_0)\n\nweapon_pred\n\n# A tibble: 14,696 × 4\n   WeaponCarryingSchool .pred_class .pred_1 .pred_0\n   &lt;fct&gt;                &lt;fct&gt;         &lt;dbl&gt;   &lt;dbl&gt;\n 1 0                    0            0.0482   0.952\n 2 0                    0            0.0424   0.958\n 3 0                    0            0.0214   0.979\n 4 0                    0            0.0260   0.974\n 5 0                    0            0.137    0.863\n 6 0                    0            0.0482   0.952\n 7 0                    0            0.0251   0.975\n 8 0                    0            0.0251   0.975\n 9 0                    0            0.0403   0.960\n10 0                    0            0.0521   0.948\n# ℹ 14,686 more rows"
+    "text": "Making Predictions\nAfter all of that, I was finally able to make predictions using the model and test its results.\n\nweapon_pred &lt;-\n  augment(forest_fit, analysis_train) |&gt;\n  select(WeaponCarryingSchool, .pred_class, .pred_1, .pred_0)\n\nweapon_pred\n\n# A tibble: 14,696 × 4\n   WeaponCarryingSchool .pred_class .pred_1 .pred_0\n   &lt;fct&gt;                &lt;fct&gt;         &lt;dbl&gt;   &lt;dbl&gt;\n 1 0                    0            0.0471   0.953\n 2 0                    0            0.0409   0.959\n 3 0                    0            0.0221   0.978\n 4 0                    0            0.0305   0.969\n 5 0                    0            0.136    0.864\n 6 0                    0            0.0471   0.953\n 7 0                    0            0.0260   0.974\n 8 0                    0            0.0260   0.974\n 9 0                    0            0.0378   0.962\n10 0                    0            0.0564   0.944\n# ℹ 14,686 more rows"
   },
   {
     "objectID": "models/random_forest.html#roc-curve-and-auc",
     "href": "models/random_forest.html#roc-curve-and-auc",
     "title": "Random Forest",
     "section": "ROC Curve and AUC",
-    "text": "ROC Curve and AUC\nI visualized model performance with an ROC curve and computed the AUC.\n\nroc_plot &lt;-\n  weapon_pred |&gt;\n  roc_curve(truth = WeaponCarryingSchool,\n            .pred_1,\n            event_level = \"second\") |&gt;\n  autoplot()\n\nroc_plot\n\n\n\n\n\n\n\n\n\nweapon_pred |&gt;\n  roc_auc(truth = WeaponCarryingSchool,\n          .pred_1,\n          event_level = \"second\")\n\n# A tibble: 1 × 3\n  .metric .estimator .estimate\n  &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt;\n1 roc_auc binary         0.705"
+    "text": "ROC Curve and AUC\nI visualized model performance with an ROC curve and computed the AUC.\n\nroc_plot &lt;-\n  weapon_pred |&gt;\n  roc_curve(truth = WeaponCarryingSchool,\n            .pred_1,\n            event_level = \"second\") |&gt;\n  autoplot()\n\nroc_plot\n\n\n\n\n\n\n\n\n\nweapon_pred |&gt;\n  roc_auc(truth = WeaponCarryingSchool,\n          .pred_1,\n          event_level = \"second\")\n\n# A tibble: 1 × 3\n  .metric .estimator .estimate\n  &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt;\n1 roc_auc binary         0.704"
   },
   {
     "objectID": "models/random_forest.html#results-and-interpretation",
@@ -535,7 +535,56 @@
     "objectID": "models/logistic.html#loading-the-data",
     "href": "models/logistic.html#loading-the-data",
     "title": "Logistic Regression",
-    "section": "Loading the data",
-    "text": "Loading the data\n\nanalysis_data &lt;- readRDS(here(\"models\", \"data\", \"analysis_data.rds\"))\nanalysis_train &lt;- readRDS(here(\"models\", \"data\", \"analysis_train.rds\"))\nanalysis_test &lt;- readRDS(here(\"models\", \"data\", \"analysis_test.rds\"))\nanalysis_folds &lt;- readRDS(here(\"models\", \"data\", \"analysis_folds.rds\"))"
+    "section": "Loading the Data",
+    "text": "Loading the Data\n\nanalysis_data &lt;- readRDS(here(\"models\", \"data\", \"analysis_data.rds\"))\nanalysis_train &lt;- readRDS(here(\"models\", \"data\", \"analysis_train.rds\"))\nanalysis_test &lt;- readRDS(here(\"models\", \"data\", \"analysis_test.rds\"))\nanalysis_folds &lt;- readRDS(here(\"models\", \"data\", \"analysis_folds.rds\"))"
+  },
+  {
+    "objectID": "models/logistic.html#loading-packages",
+    "href": "models/logistic.html#loading-packages",
+    "title": "Logistic Regression",
+    "section": "Loading Packages",
+    "text": "Loading Packages\n\nlibrary(yardstick)\nlibrary(tidymodels)\nlibrary(tidyverse)\nlibrary(here)"
+  },
+  {
+    "objectID": "models/logistic.html#loading-the-ata",
+    "href": "models/logistic.html#loading-the-ata",
+    "title": "Logistic Regression",
+    "section": "Loading the ata",
+    "text": "Loading the ata\n\nanalysis_data &lt;- readRDS(here(\"models\", \"data\", \"analysis_data.rds\"))\nanalysis_train &lt;- readRDS(here(\"models\", \"data\", \"analysis_train.rds\"))\nanalysis_test &lt;- readRDS(here(\"models\", \"data\", \"analysis_test.rds\"))\nanalysis_folds &lt;- readRDS(here(\"models\", \"data\", \"analysis_folds.rds\"))"
+  },
+  {
+    "objectID": "models/trees.html#loading-packages",
+    "href": "models/trees.html#loading-packages",
+    "title": "Classification Tree",
+    "section": "Loading Packages",
+    "text": "Loading Packages\n\nlibrary(tidymodels)\nlibrary(tidyverse)\nlibrary(here)\nlibrary(rpart)"
+  },
+  {
+    "objectID": "models/lasso.html#loading-packages",
+    "href": "models/lasso.html#loading-packages",
+    "title": "Lasso Regression",
+    "section": "Loading Packages",
+    "text": "Loading Packages\nFirst, I loaded the necessary packages for our analysis.\n\nlibrary(here)\nlibrary(tidymodels)\nlibrary(tidyverse)"
+  },
+  {
+    "objectID": "models/lasso.html#recipe",
+    "href": "models/lasso.html#recipe",
+    "title": "Lasso Regression",
+    "section": "Recipe",
+    "text": "Recipe\nBefore fitting the model, I needed to preprocess the data. I created a recipe that:\n\nImputes missing values in categorical variables using the mode\nImputes missing values in numeric variables using the mean\nRemoves predictors with zero variance\nRemoves highly correlated predictors (correlation threshold = 0.7)\nCreates dummy variables for categorical predictors\n\n\nlasso_weapon_carry_recipe &lt;- \n  recipe(formula = WeaponCarryingSchool ~ ., data = analysis_train) |&gt;\n  step_impute_mode(all_nominal_predictors()) |&gt;\n  step_impute_mean(all_numeric_predictors()) |&gt;\n  step_zv(all_predictors()) |&gt; \n  step_corr(all_numeric_predictors(), threshold = 0.7) %&gt;% \n  step_dummy(all_nominal_predictors())\n\nlasso_weapon_carry_recipe\n\n\n\n\n── Recipe ──────────────────────────────────────────────────────────────────────\n\n\n\n\n\n── Inputs \n\n\nNumber of variables by role\n\n\noutcome:    1\npredictor: 10\n\n\n\n\n\n── Operations \n\n\n• Mode imputation for: all_nominal_predictors()\n\n\n• Mean imputation for: all_numeric_predictors()\n\n\n• Zero variance filter on: all_predictors()\n\n\n• Correlation filter on: all_numeric_predictors()\n\n\n• Dummy variables from: all_nominal_predictors()\n\n\nI applied a recipe to transform the data according to these preprocessing steps.\n\nlasso_weapon_carry_recipe %&gt;% \n  prep() %&gt;% \n  bake(new_data = analysis_train) \n\n# A tibble: 14,696 × 11\n   WeaponCarryingSchool AttackedInNeighborhood_X1 Bullying_X1\n   &lt;fct&gt;                                    &lt;dbl&gt;       &lt;dbl&gt;\n 1 0                                            0           0\n 2 0                                            0           1\n 3 0                                            0           0\n 4 0                                            0           0\n 5 0                                            1           0\n 6 0                                            0           0\n 7 0                                            0           0\n 8 0                                            0           0\n 9 0                                            0           0\n10 0                                            1           0\n# ℹ 14,686 more rows\n# ℹ 8 more variables: SexualAbuseByOlderPerson_X1 &lt;dbl&gt;,\n#   ParentalPhysicalAbuse_X1 &lt;dbl&gt;, ParentSubstanceUse_X1 &lt;dbl&gt;,\n#   ParentIncarceration_X1 &lt;dbl&gt;, SchoolConnectedness_X1 &lt;dbl&gt;,\n#   ParentalMonitoring_X1 &lt;dbl&gt;, UnfairDisciplineAtSchool_X1 &lt;dbl&gt;,\n#   Homelessness_X1 &lt;dbl&gt;"
+  },
+  {
+    "objectID": "models/trees.html#loading-the-data",
+    "href": "models/trees.html#loading-the-data",
+    "title": "Classification Tree",
+    "section": "Loading the Data",
+    "text": "Loading the Data\n\nanalysis_train &lt;- readRDS(here(\"models\", \"data\", \"analysis_train.rds\"))\nanalysis_fold &lt;- readRDS(here(\"models\", \"data\", \"analysis_folds.rds\"))"
+  },
+  {
+    "objectID": "models/random_forest.html#recipe",
+    "href": "models/random_forest.html#recipe",
+    "title": "Random Forest",
+    "section": "Recipe",
+    "text": "Recipe\nBefore modeling, I created a recipe that:\n\nImputes missing numeric values using the mean\nImputes missing categorical values using the mode\nConverts categorical predictors into dummy variables\n\n\nweapon_carry_recipe_rf &lt;-\n  recipe(WeaponCarryingSchool~., data = analysis_train) %&gt;%\n  step_impute_mean(all_numeric_predictors()) %&gt;%\n  step_impute_mode(all_nominal_predictors()) %&gt;%\n  step_dummy(all_nominal_predictors())"
   }
 ]

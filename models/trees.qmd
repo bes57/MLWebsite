@@ -19,7 +19,7 @@ library(here)
 library(rpart)
 ```
 
-## Data
+## Loading the Data
 
 ```{r}
 #| label: data

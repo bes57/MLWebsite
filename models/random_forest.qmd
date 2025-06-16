@@ -32,7 +32,7 @@ analysis_test <- readRDS(here("models", "data", "analysis_test.rds"))
 analysis_fold <- readRDS(here("models", "data", "analysis_folds.rds"))
 ```
 
-## Data Preprocessing
+## Recipe
 
 Before modeling, I created a recipe that:
 
