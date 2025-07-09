@@ -1,0 +1,113 @@
+---
+title: "VCT Analysis"
+author: "Benjamin Sherman"
+format:
+  html:
+    code-fold: true
+    code-summary: "Show code"
+    code-tools: true 
+    embed-resources: true
+
+knitr:
+  opts_chunk:        ########## set global options ############
+    collapse: true   # keep code from blocks together (if shown)
+    message: true    # show messages
+    warning: false    # show warnings
+    error: false      # show error messages
+    comment: ""      # don't show ## with printed output
+    dpi: 300         # image resolution (typically 300 for publication)
+    fig-width: 6.5   # figure width
+    fig-height: 4.0  # figure height
+    R.options:    
+      digits: 3    # round to three digits
+
+---
+## Introduction
+
+## Preparation
+
+#### *View below code to see library loading*
+```{r}
+#| label: library
+#install.packages("RSelenium")
+#install.packages("chromote")
+library(httr)
+library(rvest)
+library(dplyr)
+library(stringr)
+library(chromote)
+library(rvest)
+library(dplyr)
+library(httr)
+library(jsonlite)
+library(kableExtra)
+library(glue)
+library(rUM)
+library(rio)
+library(table1)
+library(knitr)
+library(gt)
+library(broom)
+library(conflicted)
+library(RSelenium)
+```
+
+## Webscraping
+
+```{r}
+url <- "https://www.vlr.gg/event/stats/2282/?page=1&group=all&agent=all&map=all&timespan=all&min_rounds=0"
+
+# Send GET request with headers
+page <- httr::GET(url,
+                  httr::add_headers(
+                    `User-Agent` = "Mozilla/5.0",
+                    Referer = "https://www.vlr.gg/event/stats/2282/valorant-masters-toronto-2025"
+                  ))
+
+html <- read_html(page)
+
+# Get all table rows
+rows <- html %>% html_elements("table.wf-table-in tbody tr")
+
+# Extract row data
+data <- lapply(rows, function(row) {
+  cells <- row %>% html_elements("td")
+  if (length(cells) < 11) return(NULL)  # skip incomplete rows
+
+  player <- cells[1] %>%
+    html_element(".text-of") %>%
+    html_text(trim = TRUE)
+
+  team <- cells[1] %>%
+    html_element(".ge-text-light") %>%
+    html_text(trim = TRUE)
+
+  stat_vals <- sapply(cells[2:11], html_text, trim = TRUE)
+
+  return(data.frame(
+    player = player,
+    team = team,
+    rating = as.numeric(stat_vals[1]),
+    acs = as.integer(stat_vals[2]),
+    kills = as.integer(stat_vals[3]),
+    deaths = as.integer(stat_vals[4]),
+    assists = as.integer(stat_vals[5]),
+    kd_diff = stat_vals[6],
+    adr = as.numeric(stat_vals[7]),
+    hs_percent = stat_vals[8],
+    fk_fd = stat_vals[9],
+    stringsAsFactors = FALSE
+  ))
+})
+
+# Combine into data frame
+stats_df <- bind_rows(data)
+
+# Save to CSV
+write.csv(stats_df, "vlr_toronto_stats.csv", row.names = FALSE)
+
+# Show preview
+print(stats_df)
+```
+
+

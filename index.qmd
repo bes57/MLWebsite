@@ -1,8 +1,9 @@
 ---
-title: "My Machine Learning Notebook"
+title: "Benny's Coding Notebook"
 ---
-
-This website will be my Machine Learning notebook, where I explore a variety of analyses in R. It's meant to be part journal, part portfolio.
+<br>
+This website will be my coding notebook, where I explore a variety of analyses in R. It's meant to be part journal, part portfolio.
+<br>
 
 ### What You'll Find Here
 

@@ -6,7 +6,7 @@ project:
     - data/
 
 website:
-  title: "Machine Learning Notes"
+  title: "Benny's Coding Notebook"
   navbar:
     left:
       - href: index.qmd
@@ -29,6 +29,9 @@ website:
         menu:
           - href: Kalshi/KalshiUpToMay.qmd
             text: Trading (May)
+          - href: Kalshi/KalshiUpToJune.qmd
+            text: Trading (June)
+        
 
 
 

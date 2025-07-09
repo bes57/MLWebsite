@@ -1,5 +1,5 @@
 ---
-title: "Kalshi Analysis 2025 (Updated May 31st)"
+title: "Kalshi Analysis 2025 (Updated May)"
 author: "Benjamin Sherman"
 format:
   html:
@@ -24,7 +24,7 @@ knitr:
 ---
 ## Introduction
 
-In 2025, I began trading on *Kalshi*, a prediction market platform where users can trade on the outcome of real-world events. This ranges from political results to sports results. Particularly from April onwards, I began putting a bit more thought into my trading strategies, and thus I thought it apt to journal this process (i.e. lessons, profitability, trends, and anything else of note.) This is meant to be more of a journal for fun with an emphasis on the results/narratives, not really a showcase of coding or anything scientific/professional (no stochastic calculus to be found here), so all of the code is hidden. If you're interested in the code, just click *"Show code"* above any result.
+In 2025, I began trading on Kalshi, a prediction market platform where users can trade on the outcome of real-world events. This ranges from political results to sports results. Particularly from May onwards, I began putting a bit more thought into my trading strategies, and thus I thought it apt to journal this process (i.e. lessons, profitability, trends, and anything else of note.) This is meant to be more of a journal for fun with an emphasis on the results/narratives, not really a showcase of coding or anything scientific/professional (no stochastic calculus to be found here), so all of the code is hidden. If you're interested in the code, just click *"Show code"* above any result.
 
 ## Basic Statistics
 
@@ -68,10 +68,11 @@ Kalshi25 <- Kalshi25 |> select(-Created)
 glimpse(Kalshi25)
 ```
 
+<br>
+For fun, let's start simple by looking at some straight numbers thus far. Nothing fancy.  
 
-For fun, let's start simple by looking at some straight numbers thus far. Nothing fancy. 
 
-#### Firstly, my profit in 2025:
+#### Firstly, my profit thusfar in 2025:
 ```{r}
 Kalshi25$Realized_Profit_Clean <- as.numeric(gsub("[\\$,]", "", Kalshi25$Realized_Profit))
 total_realized_profit <- sum(Kalshi25$Realized_Profit_Clean, na.rm = TRUE)
@@ -81,7 +82,7 @@ data.frame(Total_Realized_Profit = dollar(total_realized_profit)) |>
   kable(caption = "", align = "c") |>
   kable_styling(full_width = FALSE)
 ```
-
+<br>
 Welp, the number isn't negative. That's always a good start. Given that I started with $200, I'm proud of this.
 
 #### How about the amount of money I've lost in 2025 to fees?
@@ -94,14 +95,14 @@ data.frame(Total_Fees = dollar(total_fees)) %>%
   kable(caption = "", align = "c") %>%
   kable_styling(full_width = FALSE)
 ```
-
-Holy shit. This is surprising. The profit figure above already takes fees into account, but still. It's clear that these minimal fees have built up for me over time, but it also shows how *Kalshi* remains profitable. 
+<br>
+Holy shit. This is surprising. The previous profit figure above already takes fees into account, but still. It's clear that these minimal fees have built up for me over time, but it also shows how Kalshi remains profitable. 
 
 As a conservative estimate, let's assume there are 5,000 traders who are more trading in higher volume than me (it's probably higher.) This means there are 5,000 traders who likely have paid more in fees. Again, let's be conservative and assume the average person in this group pays about \$3,000 in fees (I know a few people with higher volume than myself who have paid five-figure amounts in fees, so I'm confident that this is conservative.) That would suggest $15,000,000 in revenue for Kalshi so far in 2025, and that's just from the population of traders who have greater order flow than myself. Damn.   
 
-Of course, this isn't very scientific; 5,000 was a guesstimate and I'm also assuming everyone else is paying fees at the same rate. The funny thing is that I actually believe I'm paying fees at a smaller rate than others. My market making/arbitrage strategies are almost all based on resting orders as opposed to immediately clearing orders, and resting orders incur fewer fees than clearing orders. AND we're not accounting for the *LARGE* majority of traders that are trading in smaller volume than me. That would suggest that Kalshi's total revenue in 2025 is a much, much higher number, but I digress. 
+Of course, this isn't very scientific; 5,000 was a guesstimate and I'm also assuming everyone else is paying fees at the same rate. The funny thing is that I actually believe I'm paying fees at a lesser rate than others. My market making/arbitrage strategies are almost all based on resting orders as opposed to immediately clearing orders, and resting orders incur smaller fees than clearing orders. AND we're not accounting for the *LARGE* majority of traders that are trading in smaller volume than me. That would suggest that Kalshi's total revenue in 2025 is a much, much higher number, but I digress. 
 
-Another quick sidepoint: this helps makes sense as to why the Kalshi team is so responsive. I've submitted a few tickets to customer support and they always surprised me with how quickly they responded. If 5,000 people are generating them 8-figures in fees, then it makes sense that they would coddle, encourage, and care for them as much as possible. Besides, the people who care enough to submit tickets and complain are usually high-volume traders. 
+Another quick sidepoint: this helps makes sense as to why the Kalshi team is so responsive. I've submitted a few tickets to customer support and they've always surprised me with how quickly they responded. If 5,000 people are generating them 8-figures in fees, then it makes sense that they would coddle, encourage, and care for them as much as possible. Besides, the people who care enough to submit tickets and complain are usually high-volume traders. 
 
 #### Now, let's look at some basic statistics. How about some frequencies? More specifically, the frequency with which I'm trading. Each number below represents the total count of trades completed.
 
@@ -134,10 +135,10 @@ day_counts |>
     title = "Trades by Day"
   )
 ```
-
+<br>
 I already knew this, but the increasing rate with which I'm trading recently is exceptional. I traded more in May than in the four months prior combined (3730 vs 6909.)
 
-Also, regarding weekly trends, I view my Kalshi trading rate as having a direct association with how much free time and energy I have that day. Higher trading on weekends as well as Mondays being slow suggest this theory.  
+Also, regarding weekly trends, I view my Kalshi trading rate as having a direct association with how much free time and energy I have that day. Higher trading on weekends as well as Mondays being slow corroborates this theory.  
 
 As for the profitability of these different times, there will be discussions of that later on.
 
@@ -324,7 +325,7 @@ It's cool to see how the largest profits and losses come from markets where I wo
 
 Lastly, my largest win came from a market with the ticker "KXGRAMBCS-67-TA". After phoning a friend, I recalled that this was from the Grammy market. Funny enough, my largest win comes from a really boring and unimpressive strategy. All I did here was read a Rolling Stone's article predicting the Grammy winners and see that one of their predicted winners (The Architect for Country Song of the Year) was only given 4% odds. I trust Rolling Stones more than the Kalshi masses when it comes to the Grammys, so I threw \$11 on it. From that, we get the \$268 profit. Below is my Kalshi-generated receipt.
 
-```{r, echo=FALSE, fig.align="center"}
+```{r, echo=FALSE, fig.align="center", out.width="100%"}
 knitr::include_graphics(here::here("img", "CountryKalshi.png"))
 ```
 
@@ -519,5 +520,6 @@ tidy_timeday |>
 I'm proven correct! The most profitable combination is Saturday afternoon, not Thursday afternoon. I also find it funny that the most and least profitable combination both involve trading when it's "toolate". The moral of the story seems to be I shouldn't trade late at night on Tuesday. 
 
 Also, the spread of historical profit is pretty impressive, I didn't think that there would be this much variance in my historical profitability based on *when* I'm trading, but that's why I made this journal. To discover curiosities like that. 
-<br>
+<br>  
+
 Well, that's all for now. I need to go lose \$4,819.

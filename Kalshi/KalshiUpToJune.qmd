@@ -1,0 +1,574 @@
+---
+title: "Kalshi Analysis 2025 (Updated June)"
+author: "Benjamin Sherman"
+format:
+  html:
+    code-fold: true
+    code-summary: "Show code"
+    code-tools: true 
+    embed-resources: true
+
+knitr:
+  opts_chunk:        ########## set global options ############
+    collapse: true   # keep code from blocks together (if shown)
+    message: true    # show messages
+    warning: false    # show warnings
+    error: false      # show error messages
+    comment: ""      # don't show ## with printed output
+    dpi: 300         # image resolution (typically 300 for publication)
+    fig-width: 6.5   # figure width
+    fig-height: 4.0  # figure height
+    R.options:    
+      digits: 3    # round to three digits
+
+---
+## Introduction
+
+**bes57.github.io/MLWebsite fans rejoice!** All one of you. (Hi Benny in the future!) Another month has passed, and thus another update to my trading journal. Honestly, I'm (pleasantly) surprised that I remembered to write again. So, here we go: Trading Journal Entry 2: Electric Boogaloo.
+
+## Basic Statistics
+
+#### *View below code to see library loading*
+```{r}
+#| label: library
+#install.packages("kableExtra")
+suppressPackageStartupMessages(library(tidymodels))
+tidymodels_prefer()
+suppressPackageStartupMessages(library(tidyverse))
+library(shiny)
+library(plotly)
+library(forcats)
+library(lubridate)
+library(kableExtra)
+library(glue)
+library(rUM)
+library(rio)
+library(table1)
+library(knitr)
+library(gt)
+library(broom)
+library(stringr)
+library(conflicted)
+library(RColorBrewer)
+conflicted::conflicts_prefer(plotly::layout)
+```
+
+#### *View below code to see dataset loading/cleaning* 
+
+```{r}
+clean_dollar <- function(x) {
+  x <- gsub("[^0-9.-]", "", x)  
+  as.numeric(x)
+}
+
+Kalshi25June <- read.csv("~/Downloads/Benny_Website/Kalshi/Kalshi25June.csv", stringsAsFactors = FALSE)
+
+Kalshi25June$Created_Clean <- gsub(" at ", " ", Kalshi25June$Created)
+Kalshi25June$Created_Clean <- gsub(" EST", "", Kalshi25June$Created_Clean)
+Kalshi25June$Created_Parsed <- parse_date_time(Kalshi25June$Created_Clean, orders = "b d, Y I:Mp")
+
+Kalshi25June$Month <- format(Kalshi25June$Created_Parsed, "%B")
+Kalshi25June$DayOfWeek <- weekdays(Kalshi25June$Created_Parsed) 
+Kalshi25June$Hour <- hour(Kalshi25June$Created_Parsed)              
+
+Kalshi25June <- Kalshi25June |> select(-Created)
+
+Kalshi25June$Realized_Profit_Clean   <- clean_dollar(Kalshi25June$Realized_Profit)
+Kalshi25June$Realized_Revenue_Clean <- clean_dollar(Kalshi25June$Realized_Revenue)
+Kalshi25June$Realized_Cost_Clean    <- clean_dollar(Kalshi25June$Realized_Cost)
+Kalshi25June$Fees_Clean             <- clean_dollar(Kalshi25June$Fees)
+Kalshi25June$Contracts              <- as.numeric(Kalshi25June$Contracts)
+
+baseball_df <- Kalshi25June %>%
+  filter(str_starts(Ticker, "KXMLBGAME")) %>%
+  filter(!is.na(Realized_Profit_Clean), Contracts > 0) %>%
+  mutate(GameID = str_replace(Ticker, "-[^-]+$", ""))
+
+baseball_summary <- baseball_df %>%
+  group_by(GameID) %>%
+  summarise(
+    Realized_Profit_Clean   = sum(Realized_Profit_Clean, na.rm = TRUE),
+    Realized_Revenue_Clean  = sum(Realized_Revenue_Clean, na.rm = TRUE),
+    Realized_Cost_Clean     = sum(Realized_Cost_Clean, na.rm = TRUE),
+    Fees_Clean              = sum(Fees_Clean, na.rm = TRUE),
+    Contracts               = sum(Contracts, na.rm = TRUE),
+    Created_Parsed          = min(Created_Parsed, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+baseball_metadata <- baseball_df %>%
+  group_by(GameID) %>%
+  slice(1) %>%
+  ungroup() %>%
+  select(-Realized_Profit_Clean, -Realized_Revenue_Clean, -Realized_Cost_Clean, -Fees_Clean, -Contracts, -Created_Parsed)
+
+baseball_collapsed <- left_join(baseball_summary, baseball_metadata, by = "GameID") %>%
+  mutate(Ticker = GameID) %>%
+  select(-GameID)
+
+non_baseball_df <- Kalshi25June %>%
+  filter(!str_starts(Ticker, "KXMLBGAME"))
+
+Kalshi25June_arb <- bind_rows(non_baseball_df, baseball_collapsed)
+
+# WNBA Arbitrages
+womensbball <- Kalshi25June_arb %>%
+  filter(str_starts(Ticker, "KXWNBAGAME")) %>%
+  filter(!is.na(Realized_Profit_Clean)) %>%
+  mutate(
+    GameID = str_replace(Ticker, "-[^-]+$", ""),
+    Contracts = as.numeric(Contracts)
+  )
+
+womensbball_collapsed <- womensbball %>%
+  group_by(GameID) %>%
+  summarise(
+    Ticker                 = first(GameID),
+    Realized_Profit_Clean = sum(Realized_Profit_Clean, na.rm = TRUE),
+    Realized_Revenue_Clean = sum(Realized_Revenue_Clean, na.rm = TRUE),
+    Realized_Cost_Clean    = sum(Realized_Cost_Clean, na.rm = TRUE),
+    Fees_Clean             = sum(Fees_Clean, na.rm = TRUE),
+    Contracts              = sum(Contracts, na.rm = TRUE),
+    Created_Parsed         = min(Created_Parsed, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+non_womensbball <- Kalshi25June_arb %>%
+  filter(!str_starts(Ticker, "KXWNBAGAME"))
+
+Kalshi25June_arb <- bind_rows(non_womensbball, womensbball_collapsed) %>%
+  arrange(desc(Created_Parsed))
+
+# UFC Arbitrages
+ufc <- Kalshi25June_arb %>%
+  filter(str_starts(Ticker, "KXUFCFIGHT")) %>%
+  filter(!is.na(Realized_Profit_Clean)) %>%
+  mutate(
+    GameID = str_replace(Ticker, "-[^-]+$", ""),
+    Contracts = as.numeric(Contracts)
+  )
+
+ufc_collapsed <- ufc %>%
+  group_by(GameID) %>%
+  summarise(
+    Ticker                 = first(GameID),
+    Realized_Profit_Clean = sum(Realized_Profit_Clean, na.rm = TRUE),
+    Realized_Revenue_Clean = sum(Realized_Revenue_Clean, na.rm = TRUE),
+    Realized_Cost_Clean    = sum(Realized_Cost_Clean, na.rm = TRUE),
+    Fees_Clean             = sum(Fees_Clean, na.rm = TRUE),
+    Contracts              = sum(Contracts, na.rm = TRUE),
+    Created_Parsed         = min(Created_Parsed, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+non_ufc <- Kalshi25June_arb %>%
+  filter(!str_starts(Ticker, "KXUFCFIGHT"))
+
+Kalshi25June_arb <- bind_rows(non_ufc, ufc_collapsed) %>%
+  arrange(desc(Created_Parsed))
+
+# NCAA MBB Arbitrages
+ncaa_mbb <- Kalshi25June_arb %>%
+  filter(str_starts(Ticker, "KXNCAAMBACHAMP")) %>%
+  filter(!is.na(Realized_Profit_Clean)) %>%
+  mutate(
+    GameID = str_replace(Ticker, "-[^-]+$", ""),
+    Contracts = as.numeric(Contracts)
+  )
+
+ncaa_mbb_collapsed <- ncaa_mbb %>%
+  group_by(GameID) %>%
+  summarise(
+    Ticker                 = first(GameID),
+    Realized_Profit_Clean = sum(Realized_Profit_Clean, na.rm = TRUE),
+    Realized_Revenue_Clean = sum(Realized_Revenue_Clean, na.rm = TRUE),
+    Realized_Cost_Clean    = sum(Realized_Cost_Clean, na.rm = TRUE),
+    Fees_Clean             = sum(Fees_Clean, na.rm = TRUE),
+    Contracts              = sum(Contracts, na.rm = TRUE),
+    Created_Parsed         = min(Created_Parsed, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+non_ncaa_mbb <- Kalshi25June_arb %>%
+  filter(!str_starts(Ticker, "KXNCAAMBACHAMP"))
+
+Kalshi25June_arb <- bind_rows(non_ncaa_mbb, ncaa_mbb_collapsed) %>%
+  arrange(desc(Created_Parsed))
+
+# Categorize Kalshi25June_arb markets into logical buckets
+Kalshi25June_arb <- Kalshi25June_arb %>% 
+  mutate(
+    Category = case_when(
+      str_detect(Ticker, regex("^(KXMLBGAME|MLBGAME)", ignore_case = TRUE))        ~ "Baseball",
+      str_detect(Ticker, regex("^(KXNBAGAME|KXNBASERIES|KXNBA|KXNBADRAFT)", ignore_case = TRUE))   ~ "Basketball",
+      str_detect(Ticker, regex("^(KXWNBAGAME|WNBA)", ignore_case = TRUE))         ~ "Women's Basketball",
+      str_detect(Ticker, regex("^(KXNHLGAME|KXNHL)", ignore_case = TRUE))         ~ "Hockey",
+      str_detect(Ticker, regex("^(UFC|KXUFC)", ignore_case = TRUE))                       ~ "UFC",
+      str_detect(Ticker, regex("(MARMAD|NCAAMB)", ignore_case = TRUE))            ~ "College Basketball",
+      str_detect(Ticker, regex("(WMARMAD|NCAAWB)", ignore_case = TRUE))           ~ "Women’s College Basketball",
+      str_detect(Ticker, regex("(KXMASTERS|PGA(TOUR)?|USOPEN|LIVTOUR)", ignore_case = TRUE)) ~ "Golf",
+      str_detect(Ticker, regex("(WIMBLEDON|FOMENSINGLES|FOWOMENSINGLES)", ignore_case = TRUE)) ~ "Tennis",
+      str_detect(Ticker, regex("(BITCOIN|BTC)", ignore_case = TRUE))              ~ "Crypto",
+      str_detect(Ticker, regex("(MENTION|KXTRUMP)", ignore_case = TRUE))                    ~ "Mention Markets",
+      str_detect(Ticker, regex("(VALORANT|VCT|AUSTINMAJOR|CS2?|ESPORT)", ignore_case = TRUE)) ~ "Esports",
+      str_detect(Ticker, regex("^(KXMAYOR)", ignore_case = TRUE))        ~ "Politics",
+      str_detect(Ticker, regex("^(KXAPP)", ignore_case = TRUE))        ~ "App Ranking",
+
+      TRUE ~ "Other"
+    )
+  )
+```
+  
+The benefit of this being my second entry is that I can copy over some of the dataset manipulation/cleaning from my first entry. Not only that, but I can improve on it. For example, in my arbitrage code, I only combined the values for `Realized_Profit_Clean` while all of the other values (e.g. `Realized_Revenue_Clean`, `Realized_Cost_Clean`, `Fees_Clean`) were turned into zeroes. This is accounted for in the revamped code above. Secondly, I added in a new variable to sort my trading markets into categories (for example, Baketball, Golf, Mention Markets, etc.) This will open some new avenues for qualitative analysis later on. 
+
+Now, let's start with the most straightforward but important calculation.
+
+#### Firstly, my profit thusfar in 2025:
+```{r}
+total_realized_profit <- sum(Kalshi25June_arb$Realized_Profit_Clean, na.rm = TRUE)
+
+
+data.frame(Total_Realized_Profit = dollar(total_realized_profit)) |>
+  kable(caption = "", align = "c") |>
+  kable_styling(full_width = FALSE)
+```
+  
+<br>
+Two notably good things:  
+
+1. The number is still positive  
+
+2. The number is getting bigger (*$4,819 in May's update -> $7,804 in June's update*)  
+
+#### Now, let's look at my biggest losses and wins in 2025. Has anything changed compared to May's entry?
+
+```{r}
+top_wins <- Kalshi25June_arb %>%
+  arrange(desc(Realized_Profit_Clean)) %>%
+  slice_head(n = 5)
+
+top_losses <- Kalshi25June_arb %>%
+  arrange(Realized_Profit_Clean) %>%
+  slice_head(n = 5)
+
+biggest_outliers <- bind_rows(top_wins, top_losses)
+
+biggest_outliers %>%
+  select(Date = Created_Parsed, Profit = Realized_Profit_Clean, Ticker) %>%
+  mutate(
+    Date = format(Date, "%b %d, %Y %I:%M %p"),
+    Profit = dollar(Profit)
+  ) %>%
+  kable(caption = "Top 5 Gains and Losses Across All Trades (2025)", align = "c") %>%
+  kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover", "condensed"))
+```
+<br>
+Two new entries: my fifth-largest loss and my fifth-largest profit. That new entry in the profit list (KXUFCFIGHT-25JUN21HILROU) is notable, mainly because the UFC market is a new category I've experimented with this month. My trading in June was largely defined by developing consistent, profitable strategy on recurring markets (which will be discussed later) but the UFC market is a complete departure from that trend. 
+
+UFC markets are not consistently occurring and they're extremely inefficient/bizarre. More specifically, they're bizarre in how they behave relative to other sports markets. How? Well, sports markets tend to be heavily botted. Large trading firms create hyper-efficient algorithms that put forth tens of thousands of shares in a very tight spread around their projected probability. This forces traders (like myself) to try to find profit in that tight margin, meaning higher risk and smaller profit percentage. If you're not careful in these markets, the firms will take your bids and your money as well. However, the UFC offers a conundrum: how do you calculate the probability of winning for a fighter mid-fight? The short answer is: you can't. At least not well. 
+
+To understand why that is, it's easier to understand first why firms are able to make such tight spreads on (for example) basketball markets mid-game. This is because:  
+
+1. they have a number of objective, constantly updating, and important variables they can punch into their formula.  
+
+2. the plethora of (impactful) variables creates extremely precise projections.  
+
+In the UFC, neither of these conditions are met. While, in basketball, you can look at things like `scoring totals`, `shooting efficiency`, `fouls to give`, and so forth, the UFC offers very few variables. I mean, really, what can you track? The only real answer is a variable like `punches landed` or `times knocked down`, but that's little information to work with. Furthermore, something like `punches landed` is flawed because some hits are harder than others, some hits aren't even clear as to whether they landed, etc. Meanwhile, something like `point differential` in basketball is an objective reality.  
+
+The end result is that firms have little information to create live projections with. Even if they do create spreads, the spreads have to be *very* wide to account for their projections uncertainty due to the low-information nature of the sport.  
+
+Anyway, how does this come back to me? Honestly, I just think this is an interesting phenomenon in the world of sports markets. However, this background gives context as to how I was able to make that much money in a single market. Recall when I previously described how trading firms create tight spreads that stifle traders with their unbeatable efficiency and up-to-date information? Well, the opposite happens in the UFC fights. With little to no botted activity whatsoever, there are large spreads with high liquidity, which births great opportunities to quickly build arbitrages with high volume. That allllllll comes back to me making $136 on a fight that lasted 25 minutes.  
+
+It's important to note, though, that the nature of UFC fights being far and few between means that this is neither a large nor consistent source of profit.
+
+## Consistency
+
+Well, market analysis aside, I'd like to transition by coming back to a previously written sentiment of mine: May was about developing my strategies while June was more so about consistent application of the same techniques on the same markets (allbeit some small, insignifigant tweaks.) Well, let's check my consistency!  
+
+#### Observe my trading calendar for June:
+
+```{r}
+june_trades <- Kalshi25June_arb %>%
+  filter(!is.na(Created_Parsed)) %>%
+  filter(month(Created_Parsed) == 6, year(Created_Parsed) == 2025) %>%
+  mutate(Trade_Date = as.Date(Created_Parsed)) %>%
+  distinct(Trade_Date)
+
+june_days <- tibble(Date = seq(as.Date("2025-06-01"), as.Date("2025-06-30"), by = "day")) %>%
+  mutate(
+    Weekday = wday(Date, week_start = 1),
+    Week = as.integer(format(Date - days(1), "%U")) - min(as.integer(format(Date - days(1), "%U"))) + 1,
+    Traded = if_else(Date %in% june_trades$Trade_Date, TRUE, FALSE)
+  )
+
+ggplot(june_days, aes(x = Weekday, y = -Week)) +
+  geom_tile(aes(fill = Traded), color = "white", linewidth = 1) +
+  geom_text(aes(label = day(Date)), color = "black", size = 4) +
+  scale_x_continuous(breaks = 1:7, labels = c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")) +
+  scale_fill_manual(values = c("TRUE" = "forestgreen", "FALSE" = "gray90"), labels = c("No", "Yes")) +
+  labs(
+    title = "Trading Activity Calendar: June 2025",
+    x = "", y = "",
+    fill = "Traded"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    panel.grid = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks = element_blank(),
+    legend.position = "top"
+  )
+```
+  
+Well, this proves my consistency time-wise in June.  
+
+#### How about my consistency market-wise?
+
+```{r}
+Kalshi25June_arb <- Kalshi25June_arb %>%
+  mutate(Trade_Date = as.Date(Created_Parsed))
+
+june_data <- Kalshi25June_arb %>%
+  filter(month(Trade_Date) == 6, year(Trade_Date) == 2025)
+
+daily_summary <- june_data %>%
+  group_by(Trade_Date, Category) %>%
+  summarise(Daily_Contracts = sum(Contracts, na.rm = TRUE), .groups = "drop")
+
+categories <- unique(daily_summary$Category)
+june_dates <- seq(as.Date("2025-06-01"), as.Date("2025-06-30"), by = "day")
+
+plot_data <- expand.grid(Trade_Date = june_dates, Category = categories) %>%
+  left_join(daily_summary, by = c("Trade_Date", "Category")) %>%
+  mutate(Daily_Contracts = replace_na(Daily_Contracts, 0)) %>%
+  arrange(Category, Trade_Date) %>%
+  group_by(Category) %>%
+  mutate(Cumulative_Contracts = cumsum(Daily_Contracts)) %>%
+  ungroup()
+
+ordered_cats <- plot_data %>%
+  group_by(Category) %>%
+  summarise(Total = max(Cumulative_Contracts)) %>%
+  arrange(desc(Total)) %>%
+  pull(Category)
+
+plot_data <- plot_data %>%
+  mutate(Category = fct_relevel(Category, ordered_cats))
+
+ggplot(plot_data, aes(x = Trade_Date, y = Cumulative_Contracts, color = Category)) +
+  geom_line(size = 1, alpha = 0.9) +
+  geom_smooth(se = FALSE, method = "loess", span = 0.3, linewidth = 0.8, alpha = 0.1) +
+  scale_x_date(
+    date_breaks = "1 week",
+    date_labels = "%b %d",
+    expand = expansion(mult = c(0.01, 0.01))
+  ) +
+  scale_y_continuous(labels = scales::comma) +  # Moved outside of theme()
+  labs(
+    title = "Cumulative Trading Volume by Category (June 2025)",
+    x = "Date",
+    y = "Cumulative Contracts Traded",
+    color = "Category"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "right",
+    legend.text = element_text(size = 9),
+    legend.title = element_text(size = 10),
+    plot.title = element_text(face = "bold", size = 13),
+    panel.grid.minor = element_blank()
+  )
+```  
+
+This looks about right; there's a consistent rate at which I'm trading on the baseball market, with some dabbling in other markets from time to time. This isn't just a natural phenomenon, but it's an intended result. My end goal was always to have some long-term edge that is consistent and reproducible, and after some expirimentation in May, it seems I've found that in baseball markets. Why do I want replicable consistency in my trading?
+
+1. Having alpha an a daily market as opposed to sporadic, temporary markets (mention markets, march madness markets, etc.) offers more consistent flow of money with long-term value. 
+
+2. It's easier to refine my strategy. With a daily market, I have a larger sample size to confirm that my strategy is profitable, experiment with different tweaks, and maximize profitability. Unpredictable markets are harder to prepare for and predict.  
+
+3. *(This is a less of a main point and more of a side consideration.)* If I'm able to refine my strategy and be confident that the market will exist each day and behave consistently, I could eventually code a bot to automate my trading process and create passive income. This is wishful thinking, though.
+
+I realize that, as I'm writing this, I'm getting ahead of myself by constantly saying I've found "edge" and "profitability" with the baseball markets. All I've proven with the above graph is that I'm consistently trading on the baseball market, not that I'm consistently making money. To put doubt to rest, let's be certain that I'm even making money, let alone whether I'm profitable long term.
+
+#### Below is a graph of my profit over time for baseball markets in June
+
+```{r}
+baseball_june_plot <- Kalshi25June_arb %>%
+  filter(Category == "Baseball") %>%
+  filter(month(Created_Parsed) == 6, year(Created_Parsed) == 2025) %>%
+  mutate(Trade_Date = as.Date(Created_Parsed)) %>%
+  group_by(Trade_Date) %>%
+  summarise(Daily_Profit = sum(Realized_Profit_Clean, na.rm = TRUE), .groups = "drop") %>%
+  complete(Trade_Date = seq(as.Date("2025-06-01"), as.Date("2025-06-30"), by = "day"),
+           fill = list(Daily_Profit = 0)) %>%
+  arrange(Trade_Date) %>%
+  mutate(Cumulative_Profit = cumsum(Daily_Profit))
+
+lm_model <- lm(Cumulative_Profit ~ as.numeric(Trade_Date), data = baseball_june_plot)
+
+baseball_june_plot <- baseball_june_plot %>%
+  mutate(LM_Pred = predict(lm_model))
+
+ggplot(baseball_june_plot, aes(x = Trade_Date, y = Cumulative_Profit)) +
+  geom_line(color = "forestgreen", size = 1) +
+  geom_line(aes(y = LM_Pred), color = "black", linetype = "dashed", size = 0.9, alpha = 0.5) +
+  scale_x_date(
+    date_breaks = "1 week",
+    date_labels = "%b %d",
+    expand = expansion(mult = c(0.01, 0.01))
+  ) +
+  scale_y_continuous(labels = scales::dollar) +
+  labs(
+    title = "Cumulative Profit in Baseball Markets (June 2025)",
+    x = "Date",
+    y = "Cumulative Profit (USD)"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.title = element_text(face = "bold", size = 13),
+    panel.grid.minor = element_blank()
+  )
+```
+
+There are some dips up and down, but given my high volume of trading and the consistent, upward linear trend, I feel affirmed in my assumption that I've found consistent edge in the baseball markets. This is what I'm most excited about in my trading during June. There looks to be a means of consistent profit over the next months (which will hopefully be confirmed in my next journal entry.) 
+
+Now, as much as I'd like to write *"my profit went up and I traded a lot, so I must be profitable"* and leave it at that, it would be good to confirm this assumption of mine. A graph by itself can’t rule out the possibility that random variance is masking deeper risk. For the sake of statistics, I'll perform a t-test and a Wilcoxon test to confirm whether I can be confident that I've actually been profitable, or that I'm just lucky. 
+
+## t-test and Wilcoxon test
+
+```{r}
+baseball_profits_trade <- Kalshi25June_arb %>%
+  filter(Category == "Baseball", !is.na(Realized_Profit_Clean)) %>%
+  pull(Realized_Profit_Clean)
+
+baseball_profits_game <- baseball_collapsed$Realized_Profit_Clean
+
+t_test_game   <- t.test(baseball_profits_game,  alternative = "greater")
+wilcox_game   <- wilcox.test(baseball_profits_game,  alternative = "greater")
+
+format_test <- function(test_obj, test_name, est = NA, ci_low = NA, ci_high = NA) {
+  tibble(
+    Test = test_name,
+    Estimate = est,
+    Statistic = test_obj$statistic,
+    `P-value` = formatC(test_obj$p.value, format = "e", digits = 3),
+    `CI Lower` = ci_low,
+    `CI Upper` = ci_high
+  )
+}
+
+test_results <- bind_rows(
+  format_test(t_test_game,   "T-test (Per Game)",    est = t_test_game$estimate,   ci_low = t_test_game$conf.int[1],  ci_high = t_test_game$conf.int[2]),
+  format_test(wilcox_game,   "Wilcoxon (Per Game)",  est = median(baseball_profits_game))
+)
+
+test_results %>%
+  kable(caption = "Hypothesis Test Results: Profitability in Baseball Markets", align = "c") %>%
+  kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover", "condensed"))
+```
+<br>  
+With the null hypothesis for both tests being that my true average (or median) profit is less than or equal to zero - meaning I have no consistent profitability or could even be losing - the small p-values seem to suggest that I'm likely profitable. I mean, 1.770e-07 and 2.040e-13 sure *seem* smaller than the *"p-value < 0.05"* standard. But, for better understanding, let's be clear as to what these test are doing, what they're saying, and why they're good (or bad.) 
+
+#### t-test  
+
+The t-test assumes a normal distribution and evaluates whether the mean, based on sample size and variance, is signifigantly greater than 0. What this final p-value means is, under the assumption that my true average profit is zero or negative, the probability of observing a sample mean this large ($9.71) is 0.0000177%. Now, as promising as this is, I don't know if I believe that my baseball market profitability distribution is normal. Let's check: 
+
+#### Histogram to check for normality  
+
+```{r}
+baseball_profits <- Kalshi25June_arb %>%
+  filter(Category == "Baseball", !is.na(Realized_Profit_Clean)) %>%
+  pull(Realized_Profit_Clean)
+
+ggplot(data.frame(Profit = baseball_profits), aes(x = Profit)) +
+  geom_histogram(bins = 30, fill = "steelblue", color = "white", alpha = 0.9) +
+  labs(
+    title = "Histogram of Baseball Market Profits",
+    x = "Profit (USD)",
+    y = "Frequency"
+  ) +
+  theme_minimal(base_size = 13)
+```
+  
+Honestly, it's more normal-looking than I expected. There's some left skew, but it's generally bell-shaped and symmetrical. No fat tails or anything of that sort. All in all, it's *about* normally distributed enough for me to be confident that the t-test carries some validity and proof of my profitability in baseball markets!  
+
+#### Wilcoxon test  
+
+Unlike the t-test, the Wilcoxon test *doesn't* assume normality, instead evaluating the median profit by ranking each trade's direction and magnitude. This makes the wilcoxon test more universal, but less precise. Still, with this final p-value of 2.040e-13, the probability of observing profits this consistently positive is 0.0000277% under the null hypothesis according to the Wilcoxon test. More affirmation that I'm consistently profitable in baseball markets is good!  
+
+## Conclusion (with a twist)
+
+As a fun way of ending my journal entry, I've abandoned the analysis and narrative on "trends", "averages", and "probabilities." Whole buncha baloney. Instead, I'm leaving you, dear reader, with a tool to do your own perusing. Below is a calendar-driven plot: select any date in June 2025, and you’ll see a diverging bar chart of my profits across each market category for that day. I've found that clicking through days is an easier way to understand what a typical day (trading-wise) looked like for me in June 2025. You can even spot some trends.  
+
+Enjoy!
+
+```{r}
+june_daily_cat <- Kalshi25June_arb %>%
+  filter(month(Created_Parsed) == 6, year(Created_Parsed) == 2025) %>%
+  mutate(Trade_Date = as.Date(Created_Parsed)) %>%
+  filter(Category != "Crypto") %>%
+  group_by(Trade_Date, Category) %>%
+  summarise(Day_Profit = sum(Realized_Profit_Clean, na.rm = TRUE), .groups = "drop")
+
+all_dates      <- sort(unique(june_daily_cat$Trade_Date))
+all_categories <- sort(unique(june_daily_cat$Category), decreasing = TRUE)
+
+complete_grid <- expand.grid(Trade_Date = all_dates,
+                             Category    = all_categories,
+                             KEEP.OUT.ATTRS = FALSE)
+
+june_daily_cat <- complete_grid %>%
+  left_join(june_daily_cat, by = c("Trade_Date", "Category")) %>%
+  mutate(
+    Day_Profit = replace_na(Day_Profit, 0),
+    Category   = factor(Category, levels = all_categories)
+  )
+
+p <- plot_ly()
+
+for (i in seq_along(all_dates)) {
+  day_data <- june_daily_cat %>% filter(Trade_Date == all_dates[i])
+  p <- add_bars(
+    p,
+    x       = ~Category,
+    y       = ~Day_Profit,
+    data    = day_data,
+    name    = format(all_dates[i], "%b %d"),
+    marker  = list(color = ifelse(day_data$Day_Profit >= 0, "forestgreen", "firebrick")),
+    visible = i == 1
+  )
+}
+
+vis_matrix <- lapply(seq_along(all_dates), function(i) {
+  v <- rep(FALSE, length(all_dates)); v[i] <- TRUE; v
+})
+
+buttons <- lapply(seq_along(all_dates), function(i) {
+  list(
+    method = "update",
+    label  = format(all_dates[i], "%b %d"),
+    args   = list(list(visible = vis_matrix[[i]]),
+                  list(title = paste("Profit by Category –", format(all_dates[i], "%b %d, %Y"))))
+  )
+})
+
+p <- layout(
+  p,
+  title  = paste("Profit by Category –", format(all_dates[1], "%b %d, %Y")),
+  xaxis  = list(title = "Market Category"),
+  yaxis  = list(title = "Profit (USD)", range = c(-250, 250)),
+  updatemenus = list(list(
+    type   = "dropdown",
+    active = 0,
+    buttons = buttons,
+    xanchor = "left",
+    yanchor = "top"
+  ))
+)
+
+p
+```
+<br>
+*P.S. Shit. I realize I didn't lose the $4,819 I promised to lose. I apologize. To make up for that, I'll go lose $7,804 instead.*
