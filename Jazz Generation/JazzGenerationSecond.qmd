@@ -1,0 +1,482 @@
+---
+title: "Bigram Markov Model 2.0"
+author: "Benjamin Sherman"
+format:
+  html:
+    code-fold: false
+    code-summary: "Show code"
+    code-tools: true 
+    embed-resources: true
+
+knitr:
+  opts_chunk:        ########## set global options ############
+    collapse: true   # keep code from blocks together (if shown)
+    message: true    # show messages
+    warning: false    # show warnings
+    error: false      # show error messages
+    comment: ""      # don't show ## with printed output
+    dpi: 300         # image resolution (typically 300 for publication)
+    fig-width: 6.5   # figure width
+    fig-height: 4.0  # figure height
+    R.options:    
+      digits: 3    # round to three digits
+
+---
+#### *View below code to see library loading*
+```{r}
+#| label: library
+#| code-fold: TRUE
+#install.packages("remotes")
+#install.packages("ggraph")
+#install.packages("visNetwork")
+library(visNetwork)
+library(igraph)
+library(ggraph)
+library(remotes)
+library(dplyr)
+library(tibble)
+library(rlang)
+library(ggplot2)
+library(jsonlite)
+library(purrr)
+library(tidyr)
+library(stringr)
+library(httr)
+library(readr)
+library(kgrams)
+library(knitr)
+```
+
+#### *View below code to see function loading*
+
+```{r}
+#| code-fold: TRUE
+extract_roman_base <- function(roman_string, key_mode = "major") {
+  roman_list <- if (key_mode == "minor") minor_roman else major_roman
+  roman_list <- roman_list[order(nchar(roman_list), decreasing = TRUE)]
+  match <- roman_list[str_detect(roman_string, fixed(roman_list))]
+  if (length(match) == 0) return(NA)
+  match[[1]]
+}
+
+convert_roman_prog_to_chords <- function(roman_prog, key = "C") {
+  bars <- str_split(roman_prog, "\\|")[[1]]
+  tonic_val <- chromatic_scale[[extract_root(key)]]
+  is_minor <- is_minor_key(key)
+  key_mode <- if (is_minor) "minor" else "major"
+  roman_labels <- if (is_minor) minor_roman else major_roman
+}
+  
+chromatic_scale <- c(
+  "C"=0, "C#"=1, "Db"=1,
+  "D"=2, "D#"=3, "Eb"=3,
+  "E"=4, "F"=5, "F#"=6, "Gb"=6,
+  "G"=7, "G#"=8, "Ab"=8,
+  "A"=9, "A#"=10, "Bb"=10,
+  "B"=11
+)
+
+reverse_chromatic <- c("C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B")
+
+major_roman <- c("I", "#I/♭II", "II", "#II/♭III", "III", "IV", "#IV/♭V", "V", "#V/♭VI", "VI", "#VI/♭VII", "VII")
+minor_roman <- c("i", "#i/♭II", "ii°", "#ii°/♭III", "III", "iv", "#iv/♭V", "V", "#V/♭VI", "VI", "#VI/♭VII", "vii°")
+
+is_minor_key <- function(key) {
+  str_detect(key, "m") & !str_detect(key, "maj")
+}
+
+extract_root <- function(chord) {
+  matches <- str_match(chord, "^([A-G][b#]?)")
+  matches[,2]
+}
+
+convert_chord_to_roman <- function(chord, key) {
+  chord <- str_trim(chord)
+  if (is.na(chord) || chord == "") return("")
+
+  key_root <- extract_root(key)
+  if (is.na(key_root) || !(key_root %in% names(chromatic_scale))) return(chord)
+
+  tonic_val <- chromatic_scale[[key_root]]
+  minor_mode <- is_minor_key(key)
+  roman_labels <- if (minor_mode) minor_roman else major_roman
+
+  romanize <- function(note, quality = "") {
+    if (!(note %in% names(chromatic_scale))) return(paste0(note, quality))
+    interval <- (chromatic_scale[[note]] - tonic_val) %% 12
+    paste0(roman_labels[interval + 1], quality)
+  }
+
+  # 1. Slash chords (e.g., C/G)
+  if (str_detect(chord, "/")) {
+    parts <- str_split(chord, "/")[[1]]
+    if (length(parts) != 2) return(chord)
+    main <- str_trim(parts[1])
+    bass <- str_trim(parts[2])
+
+    main_root <- extract_root(main)
+    bass_root <- extract_root(bass)
+
+    if (is.na(main_root) || is.na(bass_root)) return(chord)
+
+    main_qual <- str_remove(main, main_root)
+    main_roman <- romanize(main_root, main_qual)
+    bass_roman <- romanize(bass_root)
+
+    return(paste0(main_roman, "/", bass_roman))
+  }
+
+  # 2. Substitution chords (e.g., Cmaj7(Am7))
+  if (str_detect(chord, "\\(")) {
+    matches <- str_match(chord, "^([A-G][b#]?[^\\(]*)\\(([^\\)]+)\\)")
+    if (any(is.na(matches))) return(chord)
+
+    outer <- str_trim(matches[, 2])
+    inner <- str_trim(matches[, 3])
+
+    outer_root <- extract_root(outer)
+    inner_root <- extract_root(inner)
+
+    if (is.na(outer_root) || is.na(inner_root)) return(chord)
+
+    outer_qual <- str_remove(outer, outer_root)
+    inner_qual <- str_remove(inner, inner_root)
+
+    outer_roman <- romanize(outer_root, outer_qual)
+    inner_roman <- romanize(inner_root, inner_qual)
+
+    return(paste0(outer_roman, "(", inner_roman, ")"))
+  }
+
+  # 3. Regular chords
+  root <- extract_root(chord)
+  if (is.na(root)) return(chord)
+
+  qual <- str_remove(chord, root)
+  romanize(root, qual)
+}
+```
+
+```{r, echo=FALSE}
+CPWK <- read.csv("CPWK2.csv")
+
+CPWK <- CPWK %>%
+  mutate(
+    Mode = ifelse(str_detect(Key, "-"), "minor", "major")
+  )
+
+#write.csv(CPWK, "CPWK3.csv", row.names = FALSE)
+```
+
+#### Overview of Model Fixes for Increased Complexity  
+<br>
+Well, in the narrative for the first model, I said I would just focus on the positives. Now is the time to understand the negatives of my previous model, so you can understand the changes I made in the updated model.  
+
+1. **Multiple chords within bars**  
+
+**PROBLEM**: If you recall, each chord progression in the previous model allotted one chord per measure   
+(e.g. `Sequence 3`:  C | Dm7 | G7 | C7 | Fmaj7 | Bm7b5 | E7b9 | A7). This made sense for simplicity's sake, but that's not how jazz progressions work in reality; often times, there are multiple chord changes within a singular measure. So, I had to figure out a way to impliment that into my model.
+
+**FIX**: I redesigned the model architecture around full measures (bars) rather than individual chords. Instead of treating each chord as an atomic unit, I treated each bar as a block of harmonic context - whether it contains one chord or several. The key insight was to condition transitions not from chord to chord, but from bar to bar, based on the relationship between the last chord of the previous bar and the first chord of the next.
+
+The updated code has the following logic tunnel:
+
+1. The model starts with a predefined starting chord (e.g., "I").
+
+2. It searches the bar metadata for all bars that begin with that chord.
+
+3. From that filtered set, it selects one bar (using probabilistic frequencies) to serve as the first measure of the sequence.
+
+4. It then extracts the last chord of that selected bar.
+
+5. Using the transition table, it finds bars whose first chord transitions well from the previous bar’s last chord.
+
+6. From those matching bars, it samples the next bar according to the learned transition probabilities.
+
+7. This process repeats:
+
+ - Each time, the last chord of the current bar is used to condition the choice of the next bar’s first chord.
+
+ - Only transitions that preserve chord-to-chord continuity across bar boundaries are considered.
+
+The result is a bar-level sequence, where each measure *can* contain multiple chords (it's still possible to only have one chord within a bar), but all transitions are both harmonically valid and empirically grounded in real jazz progressions.
+
+2. **Training the progression on data with the same chord quality**
+
+**PROBLEM**: Another issue that popped up in the previous model was some chords being flat-out weird. Here are some chord changes that the model suggested (in my own experimentation) which I found to be odd:  
+
+ - #I/♭II7 → Im6 (Why is the #I resolving to a minor I)
+ 
+ - #V/♭VI7 → #VI/♭VIImaj7 (Neither #V or #VI are in a major key)
+ 
+ - #IV/♭V07 → Im7/V (Same problem as the above chord change)
+ 
+In case you haven't noticed, the problem with these chord changes is that none of them make sense in the context of a major key (which all my progressions are based in.) What I realized is that the model was sampling from major *as well as* minor progressions, which throws off generated progressions in major keys. As you can see below, all three of these individual chord changes which I noted as "odd" come from minor progressions in the database.
+
+```{r, echo=FALSE}
+selected_songs <- CPWK %>%
+  filter(Title %in% c("After You've Gone", "Cry Me A River", "Alfie's Theme")) %>%
+  select(Title, Key, RomanNumeralProgression, Mode)
+
+kable(selected_songs, caption = "Selected Songs with Unusual Chord Transitions")
+```
+As you can see:  
+
+ - `#I/♭II7 → Im6` appears in “Cry Me A River” (a song in a minor key)  
+ 
+ - `#V/♭VI7 → #VI/♭VIImaj7` appears in “After You’ve Gone” (a song in a minor key)  
+ 
+ - `#IV/♭V07 → Im7/V` appears in “Alfie’s Theme” (a song in a minor key)
+ 
+**FIX**: I updated the model to only train on progressions that match the mode (major or minor) of the starting chord. That means:
+
+ - If I set the starting chord to "I", the model will only train from major-mode chord progressions.
+
+ - If I set it to "I-", the model will only use minor-mode chord progressions.
+
+This ensures that the statistical patterns it learns are harmonically consistent with the type of progression being generated.  
+
+3. **Eliminating chord repitition**
+
+**PROBLEM**: Of the many chord changes that can occur in jazz, one of the most common is "resting" on a chord (i.e. repeating the same chord). This typically only occurs for two or three bars, but my model doesn't know that. Because of the frequency with which "resting" occurs, my model often generates the same chord repeatedly. For example, here are some laughable chord progressions my previous model generated:  
+
+- ` C | C | C | C | C | C | Am7 | Dm7 `  
+
+- ` C | C | C | C | G7 | C07 | Cmaj7 | Cmaj7 `  
+
+- ` C | D#/E | Cmaj7/E | F6 | F6 | F6 | F6 | F#/G `  
+
+It's funny but also incredibly stupid. 
+
+**FIX**: I simply hard-coded the model to avoid excessive repetition. Specifically, if the same bar is repeated twice, the model is barred from picking it for a third time and must deviate.
+
+#### Updated Model
+
+```{r}
+tokenize_bars <- function(prog) {
+  bars <- str_split(prog, "\\|")[[1]]
+  bars <- str_trim(bars)
+  bars[bars != ""]
+}
+
+get_mode_from_chord <- function(chord) {
+  if (chord == "Im") return("minor")
+  if (chord == "I") return("major")
+  return(NA)
+}
+
+bar_info <- CPWK$RomanNumeralProgression %>%
+  map(tokenize_bars) %>%
+  unlist() %>%
+  unique() %>%
+  tibble(bar = .) %>%
+  mutate(
+    chords = map(bar, ~ str_split(.x, ",")[[1]] %>% str_trim()),
+    first_chord = map_chr(chords, ~ .x[1]),
+    last_chord = map_chr(chords, ~ .x[length(.x)])
+  )
+
+starting_chord <- "I"  # Or use "I-" for minor sequences
+mode_to_use <- get_mode_from_chord(starting_chord)
+
+CPWK_mode <- CPWK %>%
+  filter(Mode == mode_to_use)
+
+bar_info <- CPWK %>%
+  filter(Mode == mode_to_use) %>%
+  pull(RomanNumeralProgression) %>%
+  map(tokenize_bars) %>%
+  unlist() %>%
+  unique() %>%
+  tibble(bar = .) %>%
+  mutate(
+    chords = map(bar, ~ str_split(.x, ",")[[1]] %>% str_trim()),
+    first_chord = map_chr(chords, ~ .x[1]),
+    last_chord = map_chr(chords, ~ .x[length(.x)])
+  )
+
+# Building conditional transition table based last -> first chord
+bar_sequences <- CPWK %>%
+  filter(Mode == mode_to_use) %>%
+  pull(RomanNumeralProgression) %>%
+  map(tokenize_bars)
+
+bar_transitions <- map(bar_sequences, function(seq) {
+  if (length(seq) < 2) return(NULL)
+  tibble(
+    bar_from = head(seq, -1),
+    bar_to   = tail(seq, -1)
+  )
+}) %>% bind_rows()
+
+bar_transitions <- bar_transitions %>%
+  left_join(bar_info %>% select(bar_from = bar, last_chord_from = last_chord), by = "bar_from") %>%
+  left_join(bar_info %>% select(bar_to = bar, first_chord_to = first_chord), by = "bar_to") %>%
+  filter(!is.na(last_chord_from), !is.na(first_chord_to))
+
+transition_counts <- bar_transitions %>%
+  count(last_chord_from, first_chord_to, bar_to, name = "n")
+
+transition_probs <- transition_counts %>%
+  group_by(last_chord_from) %>%
+  mutate(prob = n / sum(n)) %>%
+  ungroup()
+
+generate_bar_sequence <- function(num_bars = 8) {
+  # Start from a random bar
+  start_bar <- sample(bar_info$bar, 1)
+  sequence <- c(start_bar)
+
+  for (i in 2:num_bars) {
+    prev_bar <- sequence[length(sequence)]
+    prev_last <- bar_info %>% filter(bar == prev_bar) %>% pull(last_chord)
+
+    options <- transition_probs %>%
+      filter(last_chord_from == prev_last)
+
+    if (nrow(options) == 0) break  # no valid continuation
+
+    next_bar <- sample(options$bar_to, size = 1, prob = options$prob)
+    sequence <- c(sequence, next_bar)
+  }
+
+  return(sequence)
+}
+```
+
+#### Revamped Progression Generation
+
+```{r}
+starting_bars <- bar_info %>%
+  filter(first_chord == "I") %>%
+  pull(bar)
+
+for (i in 1:10) {
+  start_bar <- sample(starting_bars, 1)
+  
+  sequence <- c(start_bar)
+  for (j in 2:8) {
+    prev_bar <- sequence[length(sequence)]
+    prev_last <- bar_info %>% filter(bar == prev_bar) %>% pull(last_chord)
+
+    options <- transition_probs %>%
+      filter(last_chord_from == prev_last)
+    
+    if (length(sequence) >= 2 && sequence[length(sequence)] == sequence[length(sequence) - 1]) {
+        options <- options %>% filter(bar_to != prev_bar)
+        }
+
+    if (nrow(options) == 0) break
+
+    next_bar <- sample(options$bar_to, size = 1, prob = options$prob)
+    sequence <- c(sequence, next_bar)
+  }
+
+  cat(sprintf("=== Sequence %02d ===\n", i))
+  cat("Roman Numerals:\n", paste(gsub(",", ", ", sequence), collapse = " | "), "\n\n")
+}
+
+```
+  
+With the previous model, I was just happy that it was semi-functional. Now, these are some serious-looking, complex, functional chord progressions! I don't need to go through gobs of music theory now to prove that - *I'll showcase some generated chord progressions and examples of correct music theory in a later update* - but this is proof of a working, complex, jazz chord progression generator.
+
+#### Converting Back to Standard Chords 
+
+As a final touch-up, I wrote some additional code to convert the generated chords back into the key of C, making them playable. Just like last time! Playability is still the final goal.
+
+```{r}
+convert_bar_to_chords <- function(bar, key = "C") {
+  tonic_val <- chromatic_scale[[extract_root(key)]]
+  is_minor <- is_minor_key(key)
+  key_mode <- if (is_minor) "minor" else "major"
+  roman_labels <- if (is_minor) minor_roman else major_roman
+
+  chords <- str_split(str_trim(bar), ",")[[1]] %>% str_trim()
+
+  real_chords <- sapply(chords, function(rc) {
+    if (rc == "") return("")
+
+    # Slash chord
+    if (str_detect(rc, "/") & !str_detect(rc, "\\(")) {
+      parts <- str_split(rc, "/")[[1]]
+      main <- str_trim(parts[1])
+      bass <- str_trim(parts[2])
+      main_label <- extract_roman_base(main, key_mode)
+      bass_label <- extract_roman_base(bass, key_mode)
+      if (is.na(main_label) | is.na(bass_label)) return("NA/NA")
+      main_qual <- str_remove(main, fixed(main_label))
+      bass_interval <- match(bass_label, roman_labels) - 1
+      main_interval <- match(main_label, roman_labels) - 1
+      bass_note <- reverse_chromatic[(tonic_val + bass_interval) %% 12 + 1]
+      main_note <- reverse_chromatic[(tonic_val + main_interval) %% 12 + 1]
+      return(paste0(main_note, main_qual, "/", bass_note))
+    }
+
+    # Substitution chord
+    if (str_detect(rc, "\\(")) {
+      matches <- str_match(rc, "^([^\\(]+)\\(([^\\)]+)\\)")
+      if (any(is.na(matches))) return("NA/NA")
+      outer <- str_trim(matches[,2])
+      inner <- str_trim(matches[,3])
+      outer_label <- extract_roman_base(outer, key_mode)
+      inner_label <- extract_roman_base(inner, key_mode)
+      if (is.na(outer_label) | is.na(inner_label)) return("NA/NA")
+      outer_qual <- str_remove(outer, fixed(outer_label))
+      inner_qual <- str_remove(inner, fixed(inner_label))
+      outer_interval <- match(outer_label, roman_labels) - 1
+      inner_interval <- match(inner_label, roman_labels) - 1
+      outer_note <- reverse_chromatic[(tonic_val + outer_interval) %% 12 + 1]
+      inner_note <- reverse_chromatic[(tonic_val + inner_interval) %% 12 + 1]
+      return(paste0(outer_note, outer_qual, "(", inner_note, inner_qual, ")"))
+    }
+
+    # Regular chord
+    roman_label <- extract_roman_base(rc, key_mode)
+    if (is.na(roman_label)) return("NA/NA")
+    qual <- str_remove(rc, fixed(roman_label))
+    interval <- match(roman_label, roman_labels) - 1
+    note <- reverse_chromatic[(tonic_val + interval) %% 12 + 1]
+    paste0(note, qual)
+  })
+
+  paste(real_chords, collapse = ", ")
+}
+
+set.seed(94)
+starting_bars <- bar_info %>%
+  filter(first_chord == "I") %>%
+  pull(bar)
+
+for (i in 1:1) {
+  start_bar <- sample(starting_bars, 1)
+  sequence <- c(start_bar)
+
+  for (j in 2:8) {
+    prev_bar <- sequence[length(sequence)]
+    prev_last <- bar_info %>% filter(bar == prev_bar) %>% pull(last_chord)
+
+    options <- transition_probs %>%
+      filter(last_chord_from == prev_last)
+
+    if (length(sequence) >= 2 && sequence[length(sequence)] == sequence[length(sequence) - 1]) {
+      options <- options %>% filter(bar_to != prev_bar)
+    }
+
+    if (nrow(options) == 0) break
+
+    next_bar <- sample(options$bar_to, size = 1, prob = options$prob)
+    sequence <- c(sequence, next_bar)
+  }
+
+  roman_str <- paste(gsub(",", ", ", sequence), collapse = " | ")
+  chord_str <- paste(map_chr(sequence, ~ convert_bar_to_chords(.x, key = "C")), collapse = " | ")
+
+  cat(sprintf("=== Sequence %02d ===\n", i))
+  cat("Roman Numerals:\n", roman_str, "\n")
+  cat("In Key of C:\n", chord_str, "\n\n")
+}
+```
+---
+
+#### Final Thoughts... <small>for now</small>
+This updated bigram Markov model represents a significant leap from the original prototype. This model has increased enough in complexity and reduced repetition that it's ready to have its chord progressions played, patterns analyzed, and usage published for use on my website... later.

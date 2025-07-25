@@ -31,6 +31,17 @@ website:
             text: Trading (May)
           - href: Kalshi/KalshiUpToJune.qmd
             text: Trading (June)
+      - text: Jazz Progression LLM
+        menu:
+          - href: Jazz Generation/JazzGenerationOutline.qmd
+            text: Project Background and Outline
+          - href: Jazz Generation/JazzGenerationDatasetCreation.qmd
+            text: Dataset Creation
+          - href: Jazz Generation/JazzGeneration.qmd
+            text: Bigram Markov Model
+          - href: Jazz Generation/JazzGenerationSecond.qmd
+            text: Bigram Markov Model 2.0
+        
         
 
 

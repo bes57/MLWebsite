@@ -1,0 +1,249 @@
+---
+title: "Jazz Generation"
+author: "Benjamin Sherman"
+format:
+  html:
+    code-fold: false
+    code-summary: "Show code"
+    code-tools: true 
+    embed-resources: true
+
+knitr:
+  opts_chunk:        ########## set global options ############
+    collapse: true   # keep code from blocks together (if shown)
+    message: true    # show messages
+    warning: false    # show warnings
+    error: false      # show error messages
+    comment: ""      # don't show ## with printed output
+    dpi: 300         # image resolution (typically 300 for publication)
+    fig-width: 6.5   # figure width
+    fig-height: 4.0  # figure height
+    R.options:    
+      digits: 3    # round to three digits
+
+---
+## Introduction
+Surprisingly enough, one of the most challenging parts of this project was to create a dataset for the model. There is no publicly available dataset with jazz chord progressions, at least one that was correctly formatted for an LLM. However, I was able to find a Github repository with almost 1,000 progressions. I took it upon myself to download the JSON file, filter the progressions, and mutate the dataset to be functional for the model.  
+
+The Github repository can be found [here](https://github.com/mikeoliphant/JazzStandards).
+
+
+#### *View below code to see library loading*
+```{r}
+#| label: library
+#| code-fold: TRUE
+#install.packages("remotes")
+library(remotes)
+library(dplyr)
+library(tibble)
+library(rlang)
+library(ggplot2)
+library(jsonlite)
+library(purrr)
+library(tidyr)
+library(stringr)
+library(httr)
+library(readr)
+library(kgrams)
+library(knitr)
+```
+
+```{r, echo=FALSE}
+#remotes::install_github("vgherard/kgrams", force = TRUE, upgrade = "always")
+#packageVersion("kgrams")
+```
+
+#### Dataset Filtration
+
+Firstly, to ensure consistency in the training data, I filtered for progressions in 4/4 time and exactly 8 bars. This standardization helps the jazz progression LLM learn from structurally comparable examples.  
+For example, the bar "|Am, D7|" implies a different rhythm in 3/4 time as opposed to 4/4. This showcases the importance of normalizing time signature. As for the 8 bars, this length is a common phrase structure in jazz, especially within A sections. Limiting to 8-bar segments ensures the model learns patterns that fit within a musically coherent and widely used harmonic unit, improving the relevance and musicality of generated progressions.  
+
+Lastly, as some songs were double-counted in the repository, I ensured each song only appeared once in the dataset.
+
+```{r}
+jazz_data <- fromJSON("JazzStandards.json", simplifyVector = FALSE)
+
+count_bars <- function(chord_string) {
+  bars <- str_split(chord_string, "\\|")[[1]]
+  sum(str_trim(bars) != "")
+}
+
+a_sections_8bars_4 <- map_df(jazz_data, function(tune) {
+  title <- tune$Title
+  time_sig <- tune$TimeSignature
+  sections <- tune$Sections
+
+  if (is.null(time_sig) || time_sig != "4/4") return(NULL)
+
+  map_df(sections, function(section) {
+    if (!is.null(section$Label) && section$Label == "A") {
+      chords <- section$MainSegment$Chords
+      if (!is.null(chords) && count_bars(chords) == 8) {
+        tibble(
+          Title = title,
+          ChordProgression = chords
+        )
+      } else {
+        NULL
+      }
+    } else {
+      NULL
+    }
+  })
+})
+
+#write.csv(a_sections_8bars_4, "a_sections_8bars_4.csv", row.names = FALSE)
+
+df <- read.csv("Chord_Progressions_with_Guessed_Key.csv", stringsAsFactors = FALSE)
+
+df_unique_titles <- df %>%
+  distinct(Title, .keep_all = TRUE)
+
+#write.csv(df_unique_titles, "unique_titles_only.csv", row.names = FALSE)
+```
+#### Dataset Mutation
+Then came the most challenging part. The most important step in preparing this dataset for the LLM was converting the progression from standard chord symbols into Roman numeral notation. While chords like "Cmaj7" or "Am7" carry harmonic meaning, their *function* within the progression is key-dependent. For example, Cmaj7 serves as the "I chord" in the key of C, the "home base" chord. However, in the key of F, Cmaj7 serves as the "V chord", which practically is begging to be resolved back to the "I chord" (in this case F.) This distinction is critical for the LLM because it allows the model to focus on harmonic roles rather than absolute pitches.  
+
+I built a set of helper functions and mappings to identify enharmonic equivalents and properly assign chords to their relative Roman numerals based on key context. This included support for complex chord types like slash chords (e.g., C/E) and substitutions (e.g., Cmaj7(Am7)), which are common in jazz but easy to mishandle in automated systems.
+
+Other than that, there were some small formatting issues that I fixed within in the raw chord strings (e.g.removing redundant commas, trimming whitespace, and fixing formatting issues like misplaced commas before barlines or parentheses.) This was necessary to avoid parsing errors later on (as I discovered in my hours of coding errors.) 
+
+```{r}
+CPWK <- read_csv("Unique Titles SOMEWHAT - unique_titles_only.csv") %>%
+  mutate(
+    # collapse multiple commas
+    ChordProgression = str_replace_all(ChordProgression, ",+", ","),
+    # remove commas before bars or parens (e.g., ,| or ,( → just | or ()
+    ChordProgression = str_replace_all(ChordProgression, ",\\|", "|"),
+    ChordProgression = str_replace_all(ChordProgression, ",\\(", "("),
+    # remove trailing commas
+    ChordProgression = str_replace_all(ChordProgression, ",\\s*$", "")
+  )
+
+chromatic_scale <- c(
+  "C"=0, "C#"=1, "Db"=1,
+  "D"=2, "D#"=3, "Eb"=3,
+  "E"=4, "F"=5, "F#"=6, "Gb"=6,
+  "G"=7, "G#"=8, "Ab"=8,
+  "A"=9, "A#"=10, "Bb"=10,
+  "B"=11
+)
+
+reverse_chromatic <- c("C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B")
+
+major_roman <- c("I", "#I/♭II", "II", "#II/♭III", "III", "IV", "#IV/♭V", "V", "#V/♭VI", "VI", "#VI/♭VII", "VII")
+minor_roman <- c("i", "#i/♭II", "ii°", "#ii°/♭III", "III", "iv", "#iv/♭V", "V", "#V/♭VI", "VI", "#VI/♭VII", "vii°")
+
+is_minor_key <- function(key) {
+  str_detect(key, "m") & !str_detect(key, "maj")
+}
+
+extract_root <- function(chord) {
+  matches <- str_match(chord, "^([A-G][b#]?)")
+  matches[,2]
+}
+
+convert_chord_to_roman <- function(chord, key) {
+  chord <- str_trim(chord)
+  if (is.na(chord) || chord == "") return("")
+
+  key_root <- extract_root(key)
+  if (is.na(key_root) || !(key_root %in% names(chromatic_scale))) return(chord)
+
+  tonic_val <- chromatic_scale[[key_root]]
+  minor_mode <- is_minor_key(key)
+  roman_labels <- if (minor_mode) minor_roman else major_roman
+
+  romanize <- function(note, quality = "") {
+    if (!(note %in% names(chromatic_scale))) return(paste0(note, quality))
+    interval <- (chromatic_scale[[note]] - tonic_val) %% 12
+    paste0(roman_labels[interval + 1], quality)
+  }
+
+  # 1. Slash chords (e.g., C/G)
+  if (str_detect(chord, "/")) {
+    parts <- str_split(chord, "/")[[1]]
+    if (length(parts) != 2) return(chord)
+    main <- str_trim(parts[1])
+    bass <- str_trim(parts[2])
+
+    main_root <- extract_root(main)
+    bass_root <- extract_root(bass)
+
+    if (is.na(main_root) || is.na(bass_root)) return(chord)
+
+    main_qual <- str_remove(main, main_root)
+    main_roman <- romanize(main_root, main_qual)
+    bass_roman <- romanize(bass_root)
+
+    return(paste0(main_roman, "/", bass_roman))
+  }
+
+  # 2. Substitution chords (e.g., Cmaj7(Am7))
+  if (str_detect(chord, "\\(")) {
+    matches <- str_match(chord, "^([A-G][b#]?[^\\(]*)\\(([^\\)]+)\\)")
+    if (any(is.na(matches))) return(chord)
+
+    outer <- str_trim(matches[, 2])
+    inner <- str_trim(matches[, 3])
+
+    outer_root <- extract_root(outer)
+    inner_root <- extract_root(inner)
+
+    if (is.na(outer_root) || is.na(inner_root)) return(chord)
+
+    outer_qual <- str_remove(outer, outer_root)
+    inner_qual <- str_remove(inner, inner_root)
+
+    outer_roman <- romanize(outer_root, outer_qual)
+    inner_roman <- romanize(inner_root, inner_qual)
+
+    return(paste0(outer_roman, "(", inner_roman, ")"))
+  }
+
+  # 3. Regular chords
+  root <- extract_root(chord)
+  if (is.na(root)) return(chord)
+
+  qual <- str_remove(chord, root)
+  romanize(root, qual)
+}
+
+convert_progression <- function(prog, key) {
+  if (is.na(prog) || is.na(key)) return("")
+  bars <- str_split(prog, "\\|")[[1]]
+  romanized_bars <- lapply(bars, function(bar) {
+    chords <- str_split(bar, ",")[[1]]
+    roman_chords <- sapply(chords, function(ch) convert_chord_to_roman(str_trim(ch), key))
+    paste(roman_chords, collapse = ",")
+  })
+  paste(romanized_bars, collapse = "|")
+}
+
+CPWK <- CPWK %>%
+  mutate(
+    RomanNumeralProgression = mapply(convert_progression, ChordProgression, Key)
+  ) %>%
+  filter(!is.na(RomanNumeralProgression) & RomanNumeralProgression != "") %>%
+  select(Title, ChordProgression, Key, RomanNumeralProgression)
+
+#write.csv(CPWK, "CPWK2.csv", row.names = FALSE)
+```
+
+#### Result
+
+And... voila! Below, you can see the *before vs. after* of a few example chord progressions, transformed from raw chord symbols into key-normalized Roman numeral notation. Scroll from left to right to see the full chart.
+
+
+```{r, results='asis', echo=FALSE, message=FALSE, warning=FALSE}
+cpwk <- read_csv("CPWK2.csv", show_col_types = FALSE)
+
+cpwk_summary <- cpwk %>%
+  select(Title, ChordProgression, RomanNumeralProgression) %>%
+  head(10)
+
+cat('<div style="overflow-x: auto; font-size: 80%; padding: 8px; border: 1px solid #ccc;">')
+kable(cpwk_summary, caption = "Sample of 10 Jazz Standards: Original vs Roman Numeral Progressions")
+cat('</div>')
+```
+

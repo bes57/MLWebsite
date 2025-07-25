@@ -7,7 +7,8 @@ This website will be my coding notebook, where I explore a variety of analyses i
 
 ### What You'll Find Here
 
-- **About Me**: A little bit about me and my research interests.
+- **About Me**: A little bit about me and my research interests.  
+
 -   **YRBS Models**: This is a collection of machine learning models I coded using the Youth Risk Behavior Survey (YRBS) 2023 dataset. In this, I will implement and understand different modeling techniques using the `tidymodels` framework in R. Included are examples of:
 
     -   Logistic Regression
@@ -16,4 +17,6 @@ This website will be my coding notebook, where I explore a variety of analyses i
     -   Random Forest
     
 - **Trading**: This is a personal journal of my trading habits and results in 2025. The emphasis here is less on the coding and more on the results; less serious and more light-hearted. 
+
+- **Jazz Progression LLM**: This is a personal project of mine - building a generative model to create jazz chord progressions. In this collection, I describe the model's inspiration, build a dataset from scratch, and showcase the code I wrote (as well as updates I implemented) along the way to creating my custom Markov model. All work was done in R.
 

@@ -357,7 +357,6 @@ plot_data <- plot_data %>%
 
 ggplot(plot_data, aes(x = Trade_Date, y = Cumulative_Contracts, color = Category)) +
   geom_line(size = 1, alpha = 0.9) +
-  geom_smooth(se = FALSE, method = "loess", span = 0.3, linewidth = 0.8, alpha = 0.1) +
   scale_x_date(
     date_breaks = "1 week",
     date_labels = "%b %d",
@@ -500,7 +499,7 @@ Unlike the t-test, the Wilcoxon test *doesn't* assume normality, instead evaluat
 
 ## Conclusion (with a twist)
 
-As a fun way of ending my journal entry, I've abandoned the analysis and narrative on "trends", "averages", and "probabilities." Whole buncha baloney. Instead, I'm leaving you, dear reader, with a tool to do your own perusing. Below is a calendar-driven plot: select any date in June 2025, and you’ll see a diverging bar chart of my profits across each market category for that day. I've found that clicking through days is an easier way to understand what a typical day (trading-wise) looked like for me in June 2025. You can even spot some trends.  
+As a fun way of ending my journal entry, I've abandoned the analysis and narrative on "trends", "averages", and "probabilities." Whole buncha baloney. Instead, I'm leaving you, dear reader, with a tool to do your own perusing. Below is a calendar-based plot: use the slider at the bottom to select any day in June 2025, and you’ll see a diverging bar chart of my profits across each market category for that day. I've found that sliding through days is an easy way to understand what a typical day (trading-wise) looked like for me in June 2025. You can even spot some trends.  
 
 Enjoy!
 
@@ -528,6 +527,7 @@ june_daily_cat <- complete_grid %>%
 
 p <- plot_ly()
 
+# Add one trace per day
 for (i in seq_along(all_dates)) {
   day_data <- june_daily_cat %>% filter(Trade_Date == all_dates[i])
   p <- add_bars(
@@ -541,29 +541,28 @@ for (i in seq_along(all_dates)) {
   )
 }
 
-vis_matrix <- lapply(seq_along(all_dates), function(i) {
-  v <- rep(FALSE, length(all_dates)); v[i] <- TRUE; v
-})
-
-buttons <- lapply(seq_along(all_dates), function(i) {
+# Slider steps
+steps <- lapply(seq_along(all_dates), function(i) {
   list(
     method = "update",
-    label  = format(all_dates[i], "%b %d"),
-    args   = list(list(visible = vis_matrix[[i]]),
-                  list(title = paste("Profit by Category –", format(all_dates[i], "%b %d, %Y"))))
+    args   = list(list(visible = lapply(seq_along(all_dates), function(j) j == i)),
+                  list(title = paste("Profit by Category –", format(all_dates[i], "%b %d, %Y")))),
+    label  = format(all_dates[i], "%b %d")
   )
 })
 
+# Layout with slider
 p <- layout(
   p,
   title  = paste("Profit by Category –", format(all_dates[1], "%b %d, %Y")),
   xaxis  = list(title = "Market Category"),
   yaxis  = list(title = "Profit (USD)", range = c(-250, 250)),
-  updatemenus = list(list(
-    type   = "dropdown",
+  sliders = list(list(
     active = 0,
-    buttons = buttons,
+    steps = steps,
+    x = 0.1,
     xanchor = "left",
+    y = -0.2,
     yanchor = "top"
   ))
 )
