@@ -5121,18 +5121,18 @@ margin-bottom: 1rem;
 </section>
 <section id="overview-of-model-fixes-for-increased-complexity" class="level4">
 <h4 class="anchored" data-anchor-id="overview-of-model-fixes-for-increased-complexity">Overview of Model Fixes for Increased Complexity</h4>
-<p><br> Well, in the narrative for the first model, I said I would just focus on the positives. Now is the time to understand the negatives of my previous model, so you can understand the changes I made in the updated model.</p>
+<p>Well, in my narrative for the first model, I said I would just focus on the positives. Now is the time to understand the negatives of my previous model, so you can understand the changes I made in the updated model.</p>
 <ol type="1">
 <li><strong>Multiple chords within bars</strong></li>
 </ol>
-<p><strong>PROBLEM</strong>: If you recall, each chord progression in the previous model allotted one chord per measure<br>
-(e.g. <code>Sequence 3</code>: C | Dm7 | G7 | C7 | Fmaj7 | Bm7b5 | E7b9 | A7). This made sense for simplicity’s sake, but that’s not how jazz progressions work in reality; often times, there are multiple chord changes within a singular measure. So, I had to figure out a way to impliment that into my model.</p>
-<p><strong>FIX</strong>: I redesigned the model architecture around full measures (bars) rather than individual chords. Instead of treating each chord as an atomic unit, I treated each bar as a block of harmonic context - whether it contains one chord or several. The key insight was to condition transitions not from chord to chord, but from bar to bar, based on the relationship between the last chord of the previous bar and the first chord of the next.</p>
+<p><strong>PROBLEM</strong>: If you recall, each chord progression in the previous model allotted one chord per bar<br>
+(e.g. <code>Sequence 3</code>: C | Dm7 | G7 | C7 | Fmaj7 | Bm7b5 | E7b9 | A7). This made sense for simplicity’s sake, but that’s not how jazz progressions work in reality; often times, there are multiple chord changes within a singular bar. So, I had to figure out a way to impliment that into my model.</p>
+<p><strong>FIX</strong>: I redesigned the model architecture around full bars rather than individual chords. Instead of treating each chord as an atomic unit, I treated each bar as a block of harmonic context - whether it contains one chord or several. The key insight was to condition transitions not from chord to chord, but from bar to bar, based on the relationship between the last chord of the previous bar and the first chord of the next.</p>
 <p>The updated code has the following logic tunnel:</p>
 <ol type="1">
 <li><p>The model starts with a predefined starting chord (e.g., “I”).</p></li>
 <li><p>It searches the bar metadata for all bars that begin with that chord.</p></li>
-<li><p>From that filtered set, it selects one bar (using probabilistic frequencies) to serve as the first measure of the sequence.</p></li>
+<li><p>From that filtered set, it selects one bar (using probabilistic frequencies) to serve as the first bar of the sequence.</p></li>
 <li><p>It then extracts the last chord of that selected bar.</p></li>
 <li><p>Using the transition table, it finds bars whose first chord transitions well from the previous bar’s last chord.</p></li>
 <li><p>From those matching bars, it samples the next bar according to the learned transition probabilities.</p></li>
@@ -5146,13 +5146,13 @@ margin-bottom: 1rem;
 <ol start="2" type="1">
 <li><strong>Training the progression on data with the same chord quality</strong></li>
 </ol>
-<p><strong>PROBLEM</strong>: Another issue that popped up in the previous model was some chords being flat-out weird. Here are some chord changes that the model suggested (in my own experimentation) which I found to be odd:</p>
+<p><strong>PROBLEM</strong>: Another issue that popped up in the previous model was some chords being flat-out weird. Here are some chord changes that the previous model suggested (in my own experimentation) which I found to be odd:</p>
 <ul>
 <li><p>#I/♭II7 → Im6 (Why is the #I resolving to a minor I)</p></li>
 <li><p>#V/♭VI7 → #VI/♭VIImaj7 (Neither #V or #VI are in a major key)</p></li>
 <li><p>#IV/♭V07 → Im7/V (Same problem as the above chord change)</p></li>
 </ul>
-<p>In case you haven’t noticed, the problem with these chord changes is that none of them make sense in the context of a major key (which all my progressions are based in.) What I realized is that the model was sampling from major <em>as well as</em> minor progressions, which throws off generated progressions in major keys. As you can see below, all three of these individual chord changes which I noted as “odd” come from minor progressions in the database.</p>
+<p>In case you haven’t noticed, the problem with these chord changes is that none of them make sense in the context of a major key (which all my progressions are based in). What I realized is that the model was sampling from major <em>as well as</em> minor progressions, which throws off generated progressions in major keys. As you can see below, all three of these individual chord changes which I noted as “odd” come from minor progressions in the database.</p>
 <div class="cell">
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
@@ -5194,7 +5194,7 @@ margin-bottom: 1rem;
 </table>
 </div>
 </div>
-<p>As you can see:</p>
+<p><br></p>
 <ul>
 <li><p><code>#I/♭II7 → Im6</code> appears in “Cry Me A River” (a song in a minor key)</p></li>
 <li><p><code>#V/♭VI7 → #VI/♭VIImaj7</code> appears in “After You’ve Gone” (a song in a minor key)</p></li>
@@ -5203,7 +5203,7 @@ margin-bottom: 1rem;
 <p><strong>FIX</strong>: I updated the model to only train on progressions that match the mode (major or minor) of the starting chord. That means:</p>
 <ul>
 <li><p>If I set the starting chord to “I”, the model will only train from major-mode chord progressions.</p></li>
-<li><p>If I set it to “I-”, the model will only use minor-mode chord progressions.</p></li>
+<li><p>If I set it to “Im”, the model will only use minor-mode chord progressions.</p></li>
 </ul>
 <p>This ensures that the statistical patterns it learns are harmonically consistent with the type of progression being generated.</p>
 <ol start="3" type="1">
@@ -5345,43 +5345,43 @@ margin-bottom: 1rem;
 <span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>}</span>
 <span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a><span class="sc">==</span><span class="er">=</span> Sequence <span class="dv">01</span> <span class="sc">==</span><span class="er">=</span></span>
 <span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>Roman Numerals<span class="sc">:</span></span>
-<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a> I, Imaj7 <span class="sc">|</span> IVmaj7 <span class="sc">|</span> <span class="co">#V/♭VI7, V7 | Im7(IVm7) | #V/♭VI7(II7), V7(#I/♭IImaj7) | Imaj7 | IIm7, V7 | I6, VI7 </span></span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a> I, I7<span class="sc">/</span><span class="co">#VI/♭VII | IV6/VI, IVm6/#V/♭VI | I/V | I | I7, VII7, #VI/♭VII7, VI7 | IIm7, V7 | IIm7, V7 | I6, VIm7 </span></span>
 <span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a><span class="er">===</span> Sequence <span class="dv">02</span> <span class="sc">==</span><span class="er">=</span></span>
 <span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>Roman Numerals<span class="sc">:</span></span>
-<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a> I, IV6<span class="sc">/</span>I <span class="sc">|</span> I07, I6 <span class="sc">|</span> IIm7, V7 <span class="sc">|</span> Imaj7, Vm7, I7 <span class="sc">|</span> IVmaj7, <span class="co">#VI/♭VII7 | IIIm7, VIm7 | IIm7, V7 | I6, #IV/♭V7#11 </span></span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a> I, I7<span class="sc">/</span>III <span class="sc">|</span> IV7<span class="co">#5, III7b13 | VIm7, I7/V | IVm6, V7b13 | Im7, Im7/#VI/♭VII | #V/♭VI7, V7 | I6, VIm7 | IIm7, V7 </span></span>
 <span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a><span class="sc">==</span><span class="er">=</span> Sequence <span class="dv">03</span> <span class="sc">==</span><span class="er">=</span></span>
 <span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a>Roman Numerals<span class="sc">:</span></span>
-<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a> I, <span class="co">#I/♭II07 | IIm7, V7 | I6, I7/III | IV6, IVm6 | II9 | IVm6 | I6/III, VI7 | IIm7, V7 </span></span>
+<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a> I, Iaug <span class="sc">|</span> I6, Imaj7 <span class="sc">|</span> IVm7 <span class="sc">|</span> Imaj7<span class="sc">/</span>V, IIm7, V7 <span class="sc">|</span> Imaj7, I7 <span class="sc">|</span> IVmaj7, IVm7 <span class="sc">|</span> I7, <span class="co">#VI/♭VII7 | I6 </span></span>
 <span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-41"><a href="#cb4-41" aria-hidden="true" tabindex="-1"></a><span class="sc">==</span><span class="er">=</span> Sequence <span class="dv">04</span> <span class="sc">==</span><span class="er">=</span></span>
 <span id="cb4-42"><a href="#cb4-42" aria-hidden="true" tabindex="-1"></a>Roman Numerals<span class="sc">:</span></span>
-<span id="cb4-43"><a href="#cb4-43" aria-hidden="true" tabindex="-1"></a> I, IV6<span class="sc">/</span>I <span class="sc">|</span> I07, I6 <span class="sc">|</span> <span class="co">#V/♭VI7, V7 | IIm7, VI7b9 | IIm7, V7 | Imaj7 | Imaj7 | VIIm7b5, III7b9 </span></span>
+<span id="cb4-43"><a href="#cb4-43" aria-hidden="true" tabindex="-1"></a> I, V7 <span class="sc">|</span> Imaj7, I7 <span class="sc">|</span> IVmaj7, <span class="co">#VI/♭VII7 | IIIm7, #II/♭IIIm7 | IIm7, V7 | I6, I7/III | IV6, IVm6 | I </span></span>
 <span id="cb4-44"><a href="#cb4-44" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-45"><a href="#cb4-45" aria-hidden="true" tabindex="-1"></a><span class="er">===</span> Sequence <span class="dv">05</span> <span class="sc">==</span><span class="er">=</span></span>
+<span id="cb4-45"><a href="#cb4-45" aria-hidden="true" tabindex="-1"></a><span class="sc">==</span><span class="er">=</span> Sequence <span class="dv">05</span> <span class="sc">==</span><span class="er">=</span></span>
 <span id="cb4-46"><a href="#cb4-46" aria-hidden="true" tabindex="-1"></a>Roman Numerals<span class="sc">:</span></span>
-<span id="cb4-47"><a href="#cb4-47" aria-hidden="true" tabindex="-1"></a> I, Iaug <span class="sc">|</span> I6, Imaj7 <span class="sc">|</span> Vm7, <span class="co">#IV/♭V7 | IVmaj7, #VI/♭VII7sus | Imaj7, IV7 | III7, VI7 | IIm7, V7 | Imaj7 </span></span>
+<span id="cb4-47"><a href="#cb4-47" aria-hidden="true" tabindex="-1"></a> I, Imaj7 <span class="sc">|</span> IV7<span class="co">#11 | V7, #V/♭VI7 | #I/♭IImaj7, III7 | III7 | #II/♭III7 | #V/♭VImaj7, VII7 | IIImaj7 </span></span>
 <span id="cb4-48"><a href="#cb4-48" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-49"><a href="#cb4-49" aria-hidden="true" tabindex="-1"></a><span class="sc">==</span><span class="er">=</span> Sequence <span class="dv">06</span> <span class="sc">==</span><span class="er">=</span></span>
 <span id="cb4-50"><a href="#cb4-50" aria-hidden="true" tabindex="-1"></a>Roman Numerals<span class="sc">:</span></span>
-<span id="cb4-51"><a href="#cb4-51" aria-hidden="true" tabindex="-1"></a> I, Imaj7 <span class="sc">|</span> IIm7, V7 <span class="sc">|</span> IIIm7 <span class="sc">|</span> VIm7 <span class="sc">|</span> IIm7, V7 <span class="sc">|</span> Imaj7 <span class="sc">|</span> Imaj7 <span class="sc">|</span> IV7<span class="co">#11 </span></span>
+<span id="cb4-51"><a href="#cb4-51" aria-hidden="true" tabindex="-1"></a> I, VIm7 <span class="sc">|</span> IIm7, V7sus <span class="sc">|</span> V7sus <span class="sc">|</span> Imaj7, V7sus <span class="sc">|</span> V7sus <span class="sc">|</span> I07 </span>
 <span id="cb4-52"><a href="#cb4-52" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-53"><a href="#cb4-53" aria-hidden="true" tabindex="-1"></a><span class="sc">==</span><span class="er">=</span> Sequence <span class="dv">07</span> <span class="sc">==</span><span class="er">=</span></span>
 <span id="cb4-54"><a href="#cb4-54" aria-hidden="true" tabindex="-1"></a>Roman Numerals<span class="sc">:</span></span>
-<span id="cb4-55"><a href="#cb4-55" aria-hidden="true" tabindex="-1"></a> I, Iaug <span class="sc">|</span> I6, Imaj7 <span class="sc">|</span> Imaj7 <span class="sc">|</span> Imaj7 <span class="sc">|</span> Vm7, <span class="co">#IV/♭V7 | IVmaj7, #VI/♭VII7sus | Imaj7, IV7 | I6, V7 </span></span>
+<span id="cb4-55"><a href="#cb4-55" aria-hidden="true" tabindex="-1"></a> I, VIm7 <span class="sc">|</span> IIm7, V7<span class="co">#9 | Imaj7, IVmaj7 | IIIm7/V, VIm7, VII7 | IIImaj7 | IIImaj7 </span></span>
 <span id="cb4-56"><a href="#cb4-56" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-57"><a href="#cb4-57" aria-hidden="true" tabindex="-1"></a><span class="sc">==</span><span class="er">=</span> Sequence <span class="dv">08</span> <span class="sc">==</span><span class="er">=</span></span>
 <span id="cb4-58"><a href="#cb4-58" aria-hidden="true" tabindex="-1"></a>Roman Numerals<span class="sc">:</span></span>
-<span id="cb4-59"><a href="#cb4-59" aria-hidden="true" tabindex="-1"></a> I, <span class="co">#II/♭III07 | IIm7, V7 | Imaj7, #II/♭III07 | IIm7 | IIIm7, VIm7 | IIm7, V7 | I6 | IIm7, V7 </span></span>
+<span id="cb4-59"><a href="#cb4-59" aria-hidden="true" tabindex="-1"></a> I, VIm7 <span class="sc">|</span> II7 <span class="sc">|</span> V7 <span class="sc">|</span> IIm7, V7 <span class="sc">|</span> Imaj7, VI7 <span class="sc">|</span> <span class="co">#VI/♭VIImaj7(IIm7), VII7, #VI/♭VII | IV | I7 </span></span>
 <span id="cb4-60"><a href="#cb4-60" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-61"><a href="#cb4-61" aria-hidden="true" tabindex="-1"></a><span class="sc">==</span><span class="er">=</span> Sequence <span class="dv">09</span> <span class="sc">==</span><span class="er">=</span></span>
+<span id="cb4-61"><a href="#cb4-61" aria-hidden="true" tabindex="-1"></a><span class="er">===</span> Sequence <span class="dv">09</span> <span class="sc">==</span><span class="er">=</span></span>
 <span id="cb4-62"><a href="#cb4-62" aria-hidden="true" tabindex="-1"></a>Roman Numerals<span class="sc">:</span></span>
-<span id="cb4-63"><a href="#cb4-63" aria-hidden="true" tabindex="-1"></a> I, VIm7 <span class="sc">|</span> <span class="co">#V/♭VI7, V7 | IIm7, V7 | IIm7, VI7b9 | VIm7 | IIm7, V7 | I6, VIm7 | IIm7 </span></span>
+<span id="cb4-63"><a href="#cb4-63" aria-hidden="true" tabindex="-1"></a> I, I7<span class="sc">/</span>III <span class="sc">|</span> IV, <span class="co">#IV/♭V07 | Imaj7/V, VI7 | IIm7 | V7 | I6 | II7 | IIm7, V7 </span></span>
 <span id="cb4-64"><a href="#cb4-64" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-65"><a href="#cb4-65" aria-hidden="true" tabindex="-1"></a><span class="er">===</span> Sequence <span class="dv">10</span> <span class="sc">==</span><span class="er">=</span></span>
+<span id="cb4-65"><a href="#cb4-65" aria-hidden="true" tabindex="-1"></a><span class="sc">==</span><span class="er">=</span> Sequence <span class="dv">10</span> <span class="sc">==</span><span class="er">=</span></span>
 <span id="cb4-66"><a href="#cb4-66" aria-hidden="true" tabindex="-1"></a>Roman Numerals<span class="sc">:</span></span>
-<span id="cb4-67"><a href="#cb4-67" aria-hidden="true" tabindex="-1"></a> I, Imaj7 <span class="sc">|</span> Imaj7 <span class="sc">|</span> VII7sus, VII7alt <span class="sc">|</span> <span class="co">#VI/♭VIImaj7 | VI7sus, VI7b9 | IIm7, V7 | I6 | #I/♭II07 </span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb4-67"><a href="#cb4-67" aria-hidden="true" tabindex="-1"></a> I, I7<span class="sc">/</span>III <span class="sc">|</span> IV, <span class="co">#IV/♭V07 | I/V, V7 | I6 | I6 | VI7 | IIm7, V7 | I6, #VI/♭VII7 </span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>With the previous model, I was just happy that it was semi-functional. Now, these are some serious-looking, complex, functional chord progressions! I don’t need to go through gobs of music theory now to prove that - <em>I’ll showcase some generated chord progressions and examples of correct music theory in a later update</em> - but this is proof of a working, complex, jazz chord progression generator.</p>
 </section>
@@ -5489,7 +5489,7 @@ margin-bottom: 1rem;
 </section>
 <section id="final-thoughts-for-now" class="level4">
 <h4 class="anchored" data-anchor-id="final-thoughts-for-now">Final Thoughts… <small>for now</small></h4>
-<p>This updated bigram Markov model represents a significant leap from the original prototype. This model has increased enough in complexity and reduced repetition that it’s ready to have its chord progressions played, patterns analyzed, and usage published for use on my website… later.</p>
+<p>This updated bigram Markov model represents a significant leap from the original prototype. This model has increased enough in complexity that it’s ready to have its chord progressions played, patterns analyzed, and published for public usage on my website… later.</p>
 
 
 <!-- -->
@@ -6136,317 +6136,316 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb6-173"><a href="#cb6-173" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb6-174"><a href="#cb6-174" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-175"><a href="#cb6-175" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Overview of Model Fixes for Increased Complexity  </span></span>
-<span id="cb6-176"><a href="#cb6-176" aria-hidden="true" tabindex="-1"></a>&lt;br&gt;</span>
-<span id="cb6-177"><a href="#cb6-177" aria-hidden="true" tabindex="-1"></a>Well, in the narrative for the first model, I said I would just focus on the positives. Now is the time to understand the negatives of my previous model, so you can understand the changes I made in the updated model.  </span>
-<span id="cb6-178"><a href="#cb6-178" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-179"><a href="#cb6-179" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Multiple chords within bars**  </span>
-<span id="cb6-180"><a href="#cb6-180" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-181"><a href="#cb6-181" aria-hidden="true" tabindex="-1"></a>**PROBLEM**: If you recall, each chord progression in the previous model allotted one chord per measure   </span>
-<span id="cb6-182"><a href="#cb6-182" aria-hidden="true" tabindex="-1"></a>(e.g. <span class="in">`Sequence 3`</span>:  C | Dm7 | G7 | C7 | Fmaj7 | Bm7b5 | E7b9 | A7). This made sense for simplicity&#39;s sake, but that&#39;s not how jazz progressions work in reality; often times, there are multiple chord changes within a singular measure. So, I had to figure out a way to impliment that into my model.</span>
-<span id="cb6-183"><a href="#cb6-183" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-184"><a href="#cb6-184" aria-hidden="true" tabindex="-1"></a>**FIX**: I redesigned the model architecture around full measures (bars) rather than individual chords. Instead of treating each chord as an atomic unit, I treated each bar as a block of harmonic context - whether it contains one chord or several. The key insight was to condition transitions not from chord to chord, but from bar to bar, based on the relationship between the last chord of the previous bar and the first chord of the next.</span>
-<span id="cb6-185"><a href="#cb6-185" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-186"><a href="#cb6-186" aria-hidden="true" tabindex="-1"></a>The updated code has the following logic tunnel:</span>
-<span id="cb6-187"><a href="#cb6-187" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-188"><a href="#cb6-188" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>The model starts with a predefined starting chord (e.g., &quot;I&quot;).</span>
-<span id="cb6-189"><a href="#cb6-189" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-190"><a href="#cb6-190" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>It searches the bar metadata for all bars that begin with that chord.</span>
-<span id="cb6-191"><a href="#cb6-191" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-192"><a href="#cb6-192" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>From that filtered set, it selects one bar (using probabilistic frequencies) to serve as the first measure of the sequence.</span>
-<span id="cb6-193"><a href="#cb6-193" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-194"><a href="#cb6-194" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>It then extracts the last chord of that selected bar.</span>
-<span id="cb6-195"><a href="#cb6-195" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-196"><a href="#cb6-196" aria-hidden="true" tabindex="-1"></a><span class="ss">5. </span>Using the transition table, it finds bars whose first chord transitions well from the previous bar’s last chord.</span>
-<span id="cb6-197"><a href="#cb6-197" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-198"><a href="#cb6-198" aria-hidden="true" tabindex="-1"></a><span class="ss">6. </span>From those matching bars, it samples the next bar according to the learned transition probabilities.</span>
-<span id="cb6-199"><a href="#cb6-199" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-200"><a href="#cb6-200" aria-hidden="true" tabindex="-1"></a><span class="ss">7. </span>This process repeats:</span>
-<span id="cb6-201"><a href="#cb6-201" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-202"><a href="#cb6-202" aria-hidden="true" tabindex="-1"></a><span class="ss"> - </span>Each time, the last chord of the current bar is used to condition the choice of the next bar’s first chord.</span>
-<span id="cb6-203"><a href="#cb6-203" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-204"><a href="#cb6-204" aria-hidden="true" tabindex="-1"></a><span class="ss"> - </span>Only transitions that preserve chord-to-chord continuity across bar boundaries are considered.</span>
-<span id="cb6-205"><a href="#cb6-205" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-206"><a href="#cb6-206" aria-hidden="true" tabindex="-1"></a>The result is a bar-level sequence, where each measure *can* contain multiple chords (it&#39;s still possible to only have one chord within a bar), but all transitions are both harmonically valid and empirically grounded in real jazz progressions.</span>
-<span id="cb6-207"><a href="#cb6-207" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-208"><a href="#cb6-208" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Training the progression on data with the same chord quality**</span>
-<span id="cb6-209"><a href="#cb6-209" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-210"><a href="#cb6-210" aria-hidden="true" tabindex="-1"></a>**PROBLEM**: Another issue that popped up in the previous model was some chords being flat-out weird. Here are some chord changes that the model suggested (in my own experimentation) which I found to be odd:  </span>
-<span id="cb6-211"><a href="#cb6-211" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-212"><a href="#cb6-212" aria-hidden="true" tabindex="-1"></a><span class="ss"> - </span>#I/♭II7 → Im6 (Why is the #I resolving to a minor I)</span>
-<span id="cb6-213"><a href="#cb6-213" aria-hidden="true" tabindex="-1"></a> </span>
-<span id="cb6-214"><a href="#cb6-214" aria-hidden="true" tabindex="-1"></a><span class="ss"> - </span>#V/♭VI7 → #VI/♭VIImaj7 (Neither #V or #VI are in a major key)</span>
-<span id="cb6-215"><a href="#cb6-215" aria-hidden="true" tabindex="-1"></a> </span>
-<span id="cb6-216"><a href="#cb6-216" aria-hidden="true" tabindex="-1"></a><span class="ss"> - </span>#IV/♭V07 → Im7/V (Same problem as the above chord change)</span>
-<span id="cb6-217"><a href="#cb6-217" aria-hidden="true" tabindex="-1"></a> </span>
-<span id="cb6-218"><a href="#cb6-218" aria-hidden="true" tabindex="-1"></a>In case you haven&#39;t noticed, the problem with these chord changes is that none of them make sense in the context of a major key (which all my progressions are based in.) What I realized is that the model was sampling from major *as well as* minor progressions, which throws off generated progressions in major keys. As you can see below, all three of these individual chord changes which I noted as &quot;odd&quot; come from minor progressions in the database.</span>
-<span id="cb6-219"><a href="#cb6-219" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-220"><a href="#cb6-220" aria-hidden="true" tabindex="-1"></a><span class="in">```{r, echo=FALSE}</span></span>
-<span id="cb6-221"><a href="#cb6-221" aria-hidden="true" tabindex="-1"></a><span class="in">selected_songs &lt;- CPWK %&gt;%</span></span>
-<span id="cb6-222"><a href="#cb6-222" aria-hidden="true" tabindex="-1"></a><span class="in">  filter(Title %in% c(&quot;After You&#39;ve Gone&quot;, &quot;Cry Me A River&quot;, &quot;Alfie&#39;s Theme&quot;)) %&gt;%</span></span>
-<span id="cb6-223"><a href="#cb6-223" aria-hidden="true" tabindex="-1"></a><span class="in">  select(Title, Key, RomanNumeralProgression, Mode)</span></span>
-<span id="cb6-224"><a href="#cb6-224" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-225"><a href="#cb6-225" aria-hidden="true" tabindex="-1"></a><span class="in">kable(selected_songs, caption = &quot;Selected Songs with Unusual Chord Transitions&quot;)</span></span>
-<span id="cb6-226"><a href="#cb6-226" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb6-227"><a href="#cb6-227" aria-hidden="true" tabindex="-1"></a>As you can see:  </span>
-<span id="cb6-228"><a href="#cb6-228" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-229"><a href="#cb6-229" aria-hidden="true" tabindex="-1"></a><span class="ss"> - </span><span class="in">`#I/♭II7 → Im6`</span> appears in “Cry Me A River” (a song in a minor key)  </span>
-<span id="cb6-230"><a href="#cb6-230" aria-hidden="true" tabindex="-1"></a> </span>
-<span id="cb6-231"><a href="#cb6-231" aria-hidden="true" tabindex="-1"></a><span class="ss"> - </span><span class="in">`#V/♭VI7 → #VI/♭VIImaj7`</span> appears in “After You’ve Gone” (a song in a minor key)  </span>
-<span id="cb6-232"><a href="#cb6-232" aria-hidden="true" tabindex="-1"></a> </span>
-<span id="cb6-233"><a href="#cb6-233" aria-hidden="true" tabindex="-1"></a><span class="ss"> - </span><span class="in">`#IV/♭V07 → Im7/V`</span> appears in “Alfie’s Theme” (a song in a minor key)</span>
-<span id="cb6-234"><a href="#cb6-234" aria-hidden="true" tabindex="-1"></a> </span>
-<span id="cb6-235"><a href="#cb6-235" aria-hidden="true" tabindex="-1"></a>**FIX**: I updated the model to only train on progressions that match the mode (major or minor) of the starting chord. That means:</span>
-<span id="cb6-236"><a href="#cb6-236" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-237"><a href="#cb6-237" aria-hidden="true" tabindex="-1"></a><span class="ss"> - </span>If I set the starting chord to &quot;I&quot;, the model will only train from major-mode chord progressions.</span>
-<span id="cb6-238"><a href="#cb6-238" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-239"><a href="#cb6-239" aria-hidden="true" tabindex="-1"></a><span class="ss"> - </span>If I set it to &quot;I-&quot;, the model will only use minor-mode chord progressions.</span>
-<span id="cb6-240"><a href="#cb6-240" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-241"><a href="#cb6-241" aria-hidden="true" tabindex="-1"></a>This ensures that the statistical patterns it learns are harmonically consistent with the type of progression being generated.  </span>
-<span id="cb6-242"><a href="#cb6-242" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-243"><a href="#cb6-243" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**Eliminating chord repitition**</span>
-<span id="cb6-244"><a href="#cb6-244" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-245"><a href="#cb6-245" aria-hidden="true" tabindex="-1"></a>**PROBLEM**: Of the many chord changes that can occur in jazz, one of the most common is &quot;resting&quot; on a chord (i.e. repeating the same chord). This typically only occurs for two or three bars, but my model doesn&#39;t know that. Because of the frequency with which &quot;resting&quot; occurs, my model often generates the same chord repeatedly. For example, here are some laughable chord progressions my previous model generated:  </span>
-<span id="cb6-246"><a href="#cb6-246" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-247"><a href="#cb6-247" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">` C | C | C | C | C | C | Am7 | Dm7 `</span>  </span>
-<span id="cb6-248"><a href="#cb6-248" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-249"><a href="#cb6-249" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">` C | C | C | C | G7 | C07 | Cmaj7 | Cmaj7 `</span>  </span>
-<span id="cb6-250"><a href="#cb6-250" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-251"><a href="#cb6-251" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">` C | D#/E | Cmaj7/E | F6 | F6 | F6 | F6 | F#/G `</span>  </span>
-<span id="cb6-252"><a href="#cb6-252" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-253"><a href="#cb6-253" aria-hidden="true" tabindex="-1"></a>It&#39;s funny but also incredibly stupid. </span>
-<span id="cb6-254"><a href="#cb6-254" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-255"><a href="#cb6-255" aria-hidden="true" tabindex="-1"></a>**FIX**: I simply hard-coded the model to avoid excessive repetition. Specifically, if the same bar is repeated twice, the model is barred from picking it for a third time and must deviate.</span>
-<span id="cb6-256"><a href="#cb6-256" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-257"><a href="#cb6-257" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Updated Model</span></span>
-<span id="cb6-258"><a href="#cb6-258" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-261"><a href="#cb6-261" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb6-262"><a href="#cb6-262" aria-hidden="true" tabindex="-1"></a>tokenize_bars <span class="ot">&lt;-</span> <span class="cf">function</span>(prog) {</span>
-<span id="cb6-263"><a href="#cb6-263" aria-hidden="true" tabindex="-1"></a>  bars <span class="ot">&lt;-</span> <span class="fu">str_split</span>(prog, <span class="st">&quot;</span><span class="sc">\\</span><span class="st">|&quot;</span>)[[<span class="dv">1</span>]]</span>
-<span id="cb6-264"><a href="#cb6-264" aria-hidden="true" tabindex="-1"></a>  bars <span class="ot">&lt;-</span> <span class="fu">str_trim</span>(bars)</span>
-<span id="cb6-265"><a href="#cb6-265" aria-hidden="true" tabindex="-1"></a>  bars[bars <span class="sc">!=</span> <span class="st">&quot;&quot;</span>]</span>
-<span id="cb6-266"><a href="#cb6-266" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb6-267"><a href="#cb6-267" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-268"><a href="#cb6-268" aria-hidden="true" tabindex="-1"></a>get_mode_from_chord <span class="ot">&lt;-</span> <span class="cf">function</span>(chord) {</span>
-<span id="cb6-269"><a href="#cb6-269" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (chord <span class="sc">==</span> <span class="st">&quot;Im&quot;</span>) <span class="fu">return</span>(<span class="st">&quot;minor&quot;</span>)</span>
-<span id="cb6-270"><a href="#cb6-270" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (chord <span class="sc">==</span> <span class="st">&quot;I&quot;</span>) <span class="fu">return</span>(<span class="st">&quot;major&quot;</span>)</span>
-<span id="cb6-271"><a href="#cb6-271" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(<span class="cn">NA</span>)</span>
-<span id="cb6-272"><a href="#cb6-272" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb6-273"><a href="#cb6-273" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-274"><a href="#cb6-274" aria-hidden="true" tabindex="-1"></a>bar_info <span class="ot">&lt;-</span> CPWK<span class="sc">$</span>RomanNumeralProgression <span class="sc">%&gt;%</span></span>
-<span id="cb6-275"><a href="#cb6-275" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map</span>(tokenize_bars) <span class="sc">%&gt;%</span></span>
-<span id="cb6-276"><a href="#cb6-276" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unlist</span>() <span class="sc">%&gt;%</span></span>
-<span id="cb6-277"><a href="#cb6-277" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unique</span>() <span class="sc">%&gt;%</span></span>
-<span id="cb6-278"><a href="#cb6-278" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tibble</span>(<span class="at">bar =</span> .) <span class="sc">%&gt;%</span></span>
-<span id="cb6-279"><a href="#cb6-279" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb6-280"><a href="#cb6-280" aria-hidden="true" tabindex="-1"></a>    <span class="at">chords =</span> <span class="fu">map</span>(bar, <span class="sc">~</span> <span class="fu">str_split</span>(.x, <span class="st">&quot;,&quot;</span>)[[<span class="dv">1</span>]] <span class="sc">%&gt;%</span> <span class="fu">str_trim</span>()),</span>
-<span id="cb6-281"><a href="#cb6-281" aria-hidden="true" tabindex="-1"></a>    <span class="at">first_chord =</span> <span class="fu">map_chr</span>(chords, <span class="sc">~</span> .x[<span class="dv">1</span>]),</span>
-<span id="cb6-282"><a href="#cb6-282" aria-hidden="true" tabindex="-1"></a>    <span class="at">last_chord =</span> <span class="fu">map_chr</span>(chords, <span class="sc">~</span> .x[<span class="fu">length</span>(.x)])</span>
-<span id="cb6-283"><a href="#cb6-283" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb6-284"><a href="#cb6-284" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-285"><a href="#cb6-285" aria-hidden="true" tabindex="-1"></a>starting_chord <span class="ot">&lt;-</span> <span class="st">&quot;I&quot;</span>  <span class="co"># Or use &quot;I-&quot; for minor sequences</span></span>
-<span id="cb6-286"><a href="#cb6-286" aria-hidden="true" tabindex="-1"></a>mode_to_use <span class="ot">&lt;-</span> <span class="fu">get_mode_from_chord</span>(starting_chord)</span>
-<span id="cb6-287"><a href="#cb6-287" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-288"><a href="#cb6-288" aria-hidden="true" tabindex="-1"></a>CPWK_mode <span class="ot">&lt;-</span> CPWK <span class="sc">%&gt;%</span></span>
-<span id="cb6-289"><a href="#cb6-289" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(Mode <span class="sc">==</span> mode_to_use)</span>
-<span id="cb6-290"><a href="#cb6-290" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-291"><a href="#cb6-291" aria-hidden="true" tabindex="-1"></a>bar_info <span class="ot">&lt;-</span> CPWK <span class="sc">%&gt;%</span></span>
-<span id="cb6-292"><a href="#cb6-292" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(Mode <span class="sc">==</span> mode_to_use) <span class="sc">%&gt;%</span></span>
-<span id="cb6-293"><a href="#cb6-293" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(RomanNumeralProgression) <span class="sc">%&gt;%</span></span>
-<span id="cb6-294"><a href="#cb6-294" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map</span>(tokenize_bars) <span class="sc">%&gt;%</span></span>
-<span id="cb6-295"><a href="#cb6-295" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unlist</span>() <span class="sc">%&gt;%</span></span>
-<span id="cb6-296"><a href="#cb6-296" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unique</span>() <span class="sc">%&gt;%</span></span>
-<span id="cb6-297"><a href="#cb6-297" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tibble</span>(<span class="at">bar =</span> .) <span class="sc">%&gt;%</span></span>
-<span id="cb6-298"><a href="#cb6-298" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb6-299"><a href="#cb6-299" aria-hidden="true" tabindex="-1"></a>    <span class="at">chords =</span> <span class="fu">map</span>(bar, <span class="sc">~</span> <span class="fu">str_split</span>(.x, <span class="st">&quot;,&quot;</span>)[[<span class="dv">1</span>]] <span class="sc">%&gt;%</span> <span class="fu">str_trim</span>()),</span>
-<span id="cb6-300"><a href="#cb6-300" aria-hidden="true" tabindex="-1"></a>    <span class="at">first_chord =</span> <span class="fu">map_chr</span>(chords, <span class="sc">~</span> .x[<span class="dv">1</span>]),</span>
-<span id="cb6-301"><a href="#cb6-301" aria-hidden="true" tabindex="-1"></a>    <span class="at">last_chord =</span> <span class="fu">map_chr</span>(chords, <span class="sc">~</span> .x[<span class="fu">length</span>(.x)])</span>
-<span id="cb6-302"><a href="#cb6-302" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb6-303"><a href="#cb6-303" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-304"><a href="#cb6-304" aria-hidden="true" tabindex="-1"></a><span class="co"># Building conditional transition table based last -&gt; first chord</span></span>
-<span id="cb6-305"><a href="#cb6-305" aria-hidden="true" tabindex="-1"></a>bar_sequences <span class="ot">&lt;-</span> CPWK <span class="sc">%&gt;%</span></span>
-<span id="cb6-306"><a href="#cb6-306" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(Mode <span class="sc">==</span> mode_to_use) <span class="sc">%&gt;%</span></span>
-<span id="cb6-307"><a href="#cb6-307" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(RomanNumeralProgression) <span class="sc">%&gt;%</span></span>
-<span id="cb6-308"><a href="#cb6-308" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map</span>(tokenize_bars)</span>
-<span id="cb6-309"><a href="#cb6-309" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-310"><a href="#cb6-310" aria-hidden="true" tabindex="-1"></a>bar_transitions <span class="ot">&lt;-</span> <span class="fu">map</span>(bar_sequences, <span class="cf">function</span>(seq) {</span>
-<span id="cb6-311"><a href="#cb6-311" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">length</span>(seq) <span class="sc">&lt;</span> <span class="dv">2</span>) <span class="fu">return</span>(<span class="cn">NULL</span>)</span>
-<span id="cb6-312"><a href="#cb6-312" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tibble</span>(</span>
-<span id="cb6-313"><a href="#cb6-313" aria-hidden="true" tabindex="-1"></a>    <span class="at">bar_from =</span> <span class="fu">head</span>(seq, <span class="sc">-</span><span class="dv">1</span>),</span>
-<span id="cb6-314"><a href="#cb6-314" aria-hidden="true" tabindex="-1"></a>    <span class="at">bar_to   =</span> <span class="fu">tail</span>(seq, <span class="sc">-</span><span class="dv">1</span>)</span>
-<span id="cb6-315"><a href="#cb6-315" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb6-316"><a href="#cb6-316" aria-hidden="true" tabindex="-1"></a>}) <span class="sc">%&gt;%</span> <span class="fu">bind_rows</span>()</span>
-<span id="cb6-317"><a href="#cb6-317" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-318"><a href="#cb6-318" aria-hidden="true" tabindex="-1"></a>bar_transitions <span class="ot">&lt;-</span> bar_transitions <span class="sc">%&gt;%</span></span>
-<span id="cb6-319"><a href="#cb6-319" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(bar_info <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="at">bar_from =</span> bar, <span class="at">last_chord_from =</span> last_chord), <span class="at">by =</span> <span class="st">&quot;bar_from&quot;</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb6-320"><a href="#cb6-320" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(bar_info <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="at">bar_to =</span> bar, <span class="at">first_chord_to =</span> first_chord), <span class="at">by =</span> <span class="st">&quot;bar_to&quot;</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb6-321"><a href="#cb6-321" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(last_chord_from), <span class="sc">!</span><span class="fu">is.na</span>(first_chord_to))</span>
-<span id="cb6-322"><a href="#cb6-322" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-323"><a href="#cb6-323" aria-hidden="true" tabindex="-1"></a>transition_counts <span class="ot">&lt;-</span> bar_transitions <span class="sc">%&gt;%</span></span>
-<span id="cb6-324"><a href="#cb6-324" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(last_chord_from, first_chord_to, bar_to, <span class="at">name =</span> <span class="st">&quot;n&quot;</span>)</span>
-<span id="cb6-325"><a href="#cb6-325" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-326"><a href="#cb6-326" aria-hidden="true" tabindex="-1"></a>transition_probs <span class="ot">&lt;-</span> transition_counts <span class="sc">%&gt;%</span></span>
-<span id="cb6-327"><a href="#cb6-327" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(last_chord_from) <span class="sc">%&gt;%</span></span>
-<span id="cb6-328"><a href="#cb6-328" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">prob =</span> n <span class="sc">/</span> <span class="fu">sum</span>(n)) <span class="sc">%&gt;%</span></span>
-<span id="cb6-329"><a href="#cb6-329" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
-<span id="cb6-330"><a href="#cb6-330" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-331"><a href="#cb6-331" aria-hidden="true" tabindex="-1"></a>generate_bar_sequence <span class="ot">&lt;-</span> <span class="cf">function</span>(<span class="at">num_bars =</span> <span class="dv">8</span>) {</span>
-<span id="cb6-332"><a href="#cb6-332" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Start from a random bar</span></span>
-<span id="cb6-333"><a href="#cb6-333" aria-hidden="true" tabindex="-1"></a>  start_bar <span class="ot">&lt;-</span> <span class="fu">sample</span>(bar_info<span class="sc">$</span>bar, <span class="dv">1</span>)</span>
-<span id="cb6-334"><a href="#cb6-334" aria-hidden="true" tabindex="-1"></a>  sequence <span class="ot">&lt;-</span> <span class="fu">c</span>(start_bar)</span>
-<span id="cb6-335"><a href="#cb6-335" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-336"><a href="#cb6-336" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">2</span><span class="sc">:</span>num_bars) {</span>
-<span id="cb6-337"><a href="#cb6-337" aria-hidden="true" tabindex="-1"></a>    prev_bar <span class="ot">&lt;-</span> sequence[<span class="fu">length</span>(sequence)]</span>
-<span id="cb6-338"><a href="#cb6-338" aria-hidden="true" tabindex="-1"></a>    prev_last <span class="ot">&lt;-</span> bar_info <span class="sc">%&gt;%</span> <span class="fu">filter</span>(bar <span class="sc">==</span> prev_bar) <span class="sc">%&gt;%</span> <span class="fu">pull</span>(last_chord)</span>
-<span id="cb6-339"><a href="#cb6-339" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-340"><a href="#cb6-340" aria-hidden="true" tabindex="-1"></a>    options <span class="ot">&lt;-</span> transition_probs <span class="sc">%&gt;%</span></span>
-<span id="cb6-341"><a href="#cb6-341" aria-hidden="true" tabindex="-1"></a>      <span class="fu">filter</span>(last_chord_from <span class="sc">==</span> prev_last)</span>
-<span id="cb6-342"><a href="#cb6-342" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-343"><a href="#cb6-343" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">nrow</span>(options) <span class="sc">==</span> <span class="dv">0</span>) <span class="cf">break</span>  <span class="co"># no valid continuation</span></span>
-<span id="cb6-344"><a href="#cb6-344" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-345"><a href="#cb6-345" aria-hidden="true" tabindex="-1"></a>    next_bar <span class="ot">&lt;-</span> <span class="fu">sample</span>(options<span class="sc">$</span>bar_to, <span class="at">size =</span> <span class="dv">1</span>, <span class="at">prob =</span> options<span class="sc">$</span>prob)</span>
-<span id="cb6-346"><a href="#cb6-346" aria-hidden="true" tabindex="-1"></a>    sequence <span class="ot">&lt;-</span> <span class="fu">c</span>(sequence, next_bar)</span>
-<span id="cb6-347"><a href="#cb6-347" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb6-348"><a href="#cb6-348" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-349"><a href="#cb6-349" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(sequence)</span>
-<span id="cb6-350"><a href="#cb6-350" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb6-351"><a href="#cb6-351" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb6-352"><a href="#cb6-352" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-353"><a href="#cb6-353" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Revamped Progression Generation</span></span>
-<span id="cb6-354"><a href="#cb6-354" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-357"><a href="#cb6-357" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb6-358"><a href="#cb6-358" aria-hidden="true" tabindex="-1"></a>starting_bars <span class="ot">&lt;-</span> bar_info <span class="sc">%&gt;%</span></span>
-<span id="cb6-359"><a href="#cb6-359" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(first_chord <span class="sc">==</span> <span class="st">&quot;I&quot;</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb6-360"><a href="#cb6-360" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(bar)</span>
-<span id="cb6-361"><a href="#cb6-361" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-362"><a href="#cb6-362" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>) {</span>
-<span id="cb6-363"><a href="#cb6-363" aria-hidden="true" tabindex="-1"></a>  start_bar <span class="ot">&lt;-</span> <span class="fu">sample</span>(starting_bars, <span class="dv">1</span>)</span>
-<span id="cb6-364"><a href="#cb6-364" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb6-365"><a href="#cb6-365" aria-hidden="true" tabindex="-1"></a>  sequence <span class="ot">&lt;-</span> <span class="fu">c</span>(start_bar)</span>
-<span id="cb6-366"><a href="#cb6-366" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (j <span class="cf">in</span> <span class="dv">2</span><span class="sc">:</span><span class="dv">8</span>) {</span>
-<span id="cb6-367"><a href="#cb6-367" aria-hidden="true" tabindex="-1"></a>    prev_bar <span class="ot">&lt;-</span> sequence[<span class="fu">length</span>(sequence)]</span>
-<span id="cb6-368"><a href="#cb6-368" aria-hidden="true" tabindex="-1"></a>    prev_last <span class="ot">&lt;-</span> bar_info <span class="sc">%&gt;%</span> <span class="fu">filter</span>(bar <span class="sc">==</span> prev_bar) <span class="sc">%&gt;%</span> <span class="fu">pull</span>(last_chord)</span>
-<span id="cb6-369"><a href="#cb6-369" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-370"><a href="#cb6-370" aria-hidden="true" tabindex="-1"></a>    options <span class="ot">&lt;-</span> transition_probs <span class="sc">%&gt;%</span></span>
-<span id="cb6-371"><a href="#cb6-371" aria-hidden="true" tabindex="-1"></a>      <span class="fu">filter</span>(last_chord_from <span class="sc">==</span> prev_last)</span>
-<span id="cb6-372"><a href="#cb6-372" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb6-373"><a href="#cb6-373" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">length</span>(sequence) <span class="sc">&gt;=</span> <span class="dv">2</span> <span class="sc">&amp;&amp;</span> sequence[<span class="fu">length</span>(sequence)] <span class="sc">==</span> sequence[<span class="fu">length</span>(sequence) <span class="sc">-</span> <span class="dv">1</span>]) {</span>
-<span id="cb6-374"><a href="#cb6-374" aria-hidden="true" tabindex="-1"></a>        options <span class="ot">&lt;-</span> options <span class="sc">%&gt;%</span> <span class="fu">filter</span>(bar_to <span class="sc">!=</span> prev_bar)</span>
-<span id="cb6-375"><a href="#cb6-375" aria-hidden="true" tabindex="-1"></a>        }</span>
-<span id="cb6-376"><a href="#cb6-376" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-377"><a href="#cb6-377" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">nrow</span>(options) <span class="sc">==</span> <span class="dv">0</span>) <span class="cf">break</span></span>
-<span id="cb6-378"><a href="#cb6-378" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-379"><a href="#cb6-379" aria-hidden="true" tabindex="-1"></a>    next_bar <span class="ot">&lt;-</span> <span class="fu">sample</span>(options<span class="sc">$</span>bar_to, <span class="at">size =</span> <span class="dv">1</span>, <span class="at">prob =</span> options<span class="sc">$</span>prob)</span>
-<span id="cb6-380"><a href="#cb6-380" aria-hidden="true" tabindex="-1"></a>    sequence <span class="ot">&lt;-</span> <span class="fu">c</span>(sequence, next_bar)</span>
-<span id="cb6-381"><a href="#cb6-381" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb6-382"><a href="#cb6-382" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-383"><a href="#cb6-383" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">&quot;=== Sequence %02d ===</span><span class="sc">\n</span><span class="st">&quot;</span>, i))</span>
-<span id="cb6-384"><a href="#cb6-384" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">&quot;Roman Numerals:</span><span class="sc">\n</span><span class="st">&quot;</span>, <span class="fu">paste</span>(<span class="fu">gsub</span>(<span class="st">&quot;,&quot;</span>, <span class="st">&quot;, &quot;</span>, sequence), <span class="at">collapse =</span> <span class="st">&quot; | &quot;</span>), <span class="st">&quot;</span><span class="sc">\n\n</span><span class="st">&quot;</span>)</span>
-<span id="cb6-385"><a href="#cb6-385" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb6-386"><a href="#cb6-386" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-387"><a href="#cb6-387" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb6-388"><a href="#cb6-388" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb6-389"><a href="#cb6-389" aria-hidden="true" tabindex="-1"></a>With the previous model, I was just happy that it was semi-functional. Now, these are some serious-looking, complex, functional chord progressions! I don&#39;t need to go through gobs of music theory now to prove that - *I&#39;ll showcase some generated chord progressions and examples of correct music theory in a later update* - but this is proof of a working, complex, jazz chord progression generator.</span>
-<span id="cb6-390"><a href="#cb6-390" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-391"><a href="#cb6-391" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Converting Back to Standard Chords </span></span>
-<span id="cb6-392"><a href="#cb6-392" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-393"><a href="#cb6-393" aria-hidden="true" tabindex="-1"></a>As a final touch-up, I wrote some additional code to convert the generated chords back into the key of C, making them playable. Just like last time! Playability is still the final goal.</span>
-<span id="cb6-394"><a href="#cb6-394" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-397"><a href="#cb6-397" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb6-398"><a href="#cb6-398" aria-hidden="true" tabindex="-1"></a>convert_bar_to_chords <span class="ot">&lt;-</span> <span class="cf">function</span>(bar, <span class="at">key =</span> <span class="st">&quot;C&quot;</span>) {</span>
-<span id="cb6-399"><a href="#cb6-399" aria-hidden="true" tabindex="-1"></a>  tonic_val <span class="ot">&lt;-</span> chromatic_scale[[<span class="fu">extract_root</span>(key)]]</span>
-<span id="cb6-400"><a href="#cb6-400" aria-hidden="true" tabindex="-1"></a>  is_minor <span class="ot">&lt;-</span> <span class="fu">is_minor_key</span>(key)</span>
-<span id="cb6-401"><a href="#cb6-401" aria-hidden="true" tabindex="-1"></a>  key_mode <span class="ot">&lt;-</span> <span class="cf">if</span> (is_minor) <span class="st">&quot;minor&quot;</span> <span class="cf">else</span> <span class="st">&quot;major&quot;</span></span>
-<span id="cb6-402"><a href="#cb6-402" aria-hidden="true" tabindex="-1"></a>  roman_labels <span class="ot">&lt;-</span> <span class="cf">if</span> (is_minor) minor_roman <span class="cf">else</span> major_roman</span>
-<span id="cb6-403"><a href="#cb6-403" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-404"><a href="#cb6-404" aria-hidden="true" tabindex="-1"></a>  chords <span class="ot">&lt;-</span> <span class="fu">str_split</span>(<span class="fu">str_trim</span>(bar), <span class="st">&quot;,&quot;</span>)[[<span class="dv">1</span>]] <span class="sc">%&gt;%</span> <span class="fu">str_trim</span>()</span>
-<span id="cb6-405"><a href="#cb6-405" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-406"><a href="#cb6-406" aria-hidden="true" tabindex="-1"></a>  real_chords <span class="ot">&lt;-</span> <span class="fu">sapply</span>(chords, <span class="cf">function</span>(rc) {</span>
-<span id="cb6-407"><a href="#cb6-407" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (rc <span class="sc">==</span> <span class="st">&quot;&quot;</span>) <span class="fu">return</span>(<span class="st">&quot;&quot;</span>)</span>
-<span id="cb6-408"><a href="#cb6-408" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-409"><a href="#cb6-409" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Slash chord</span></span>
-<span id="cb6-410"><a href="#cb6-410" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">str_detect</span>(rc, <span class="st">&quot;/&quot;</span>) <span class="sc">&amp;</span> <span class="sc">!</span><span class="fu">str_detect</span>(rc, <span class="st">&quot;</span><span class="sc">\\</span><span class="st">(&quot;</span>)) {</span>
-<span id="cb6-411"><a href="#cb6-411" aria-hidden="true" tabindex="-1"></a>      parts <span class="ot">&lt;-</span> <span class="fu">str_split</span>(rc, <span class="st">&quot;/&quot;</span>)[[<span class="dv">1</span>]]</span>
-<span id="cb6-412"><a href="#cb6-412" aria-hidden="true" tabindex="-1"></a>      main <span class="ot">&lt;-</span> <span class="fu">str_trim</span>(parts[<span class="dv">1</span>])</span>
-<span id="cb6-413"><a href="#cb6-413" aria-hidden="true" tabindex="-1"></a>      bass <span class="ot">&lt;-</span> <span class="fu">str_trim</span>(parts[<span class="dv">2</span>])</span>
-<span id="cb6-414"><a href="#cb6-414" aria-hidden="true" tabindex="-1"></a>      main_label <span class="ot">&lt;-</span> <span class="fu">extract_roman_base</span>(main, key_mode)</span>
-<span id="cb6-415"><a href="#cb6-415" aria-hidden="true" tabindex="-1"></a>      bass_label <span class="ot">&lt;-</span> <span class="fu">extract_roman_base</span>(bass, key_mode)</span>
-<span id="cb6-416"><a href="#cb6-416" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span> (<span class="fu">is.na</span>(main_label) <span class="sc">|</span> <span class="fu">is.na</span>(bass_label)) <span class="fu">return</span>(<span class="st">&quot;NA/NA&quot;</span>)</span>
-<span id="cb6-417"><a href="#cb6-417" aria-hidden="true" tabindex="-1"></a>      main_qual <span class="ot">&lt;-</span> <span class="fu">str_remove</span>(main, <span class="fu">fixed</span>(main_label))</span>
-<span id="cb6-418"><a href="#cb6-418" aria-hidden="true" tabindex="-1"></a>      bass_interval <span class="ot">&lt;-</span> <span class="fu">match</span>(bass_label, roman_labels) <span class="sc">-</span> <span class="dv">1</span></span>
-<span id="cb6-419"><a href="#cb6-419" aria-hidden="true" tabindex="-1"></a>      main_interval <span class="ot">&lt;-</span> <span class="fu">match</span>(main_label, roman_labels) <span class="sc">-</span> <span class="dv">1</span></span>
-<span id="cb6-420"><a href="#cb6-420" aria-hidden="true" tabindex="-1"></a>      bass_note <span class="ot">&lt;-</span> reverse_chromatic[(tonic_val <span class="sc">+</span> bass_interval) <span class="sc">%%</span> <span class="dv">12</span> <span class="sc">+</span> <span class="dv">1</span>]</span>
-<span id="cb6-421"><a href="#cb6-421" aria-hidden="true" tabindex="-1"></a>      main_note <span class="ot">&lt;-</span> reverse_chromatic[(tonic_val <span class="sc">+</span> main_interval) <span class="sc">%%</span> <span class="dv">12</span> <span class="sc">+</span> <span class="dv">1</span>]</span>
-<span id="cb6-422"><a href="#cb6-422" aria-hidden="true" tabindex="-1"></a>      <span class="fu">return</span>(<span class="fu">paste0</span>(main_note, main_qual, <span class="st">&quot;/&quot;</span>, bass_note))</span>
-<span id="cb6-423"><a href="#cb6-423" aria-hidden="true" tabindex="-1"></a>    }</span>
-<span id="cb6-424"><a href="#cb6-424" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-425"><a href="#cb6-425" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Substitution chord</span></span>
-<span id="cb6-426"><a href="#cb6-426" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">str_detect</span>(rc, <span class="st">&quot;</span><span class="sc">\\</span><span class="st">(&quot;</span>)) {</span>
-<span id="cb6-427"><a href="#cb6-427" aria-hidden="true" tabindex="-1"></a>      matches <span class="ot">&lt;-</span> <span class="fu">str_match</span>(rc, <span class="st">&quot;^([^</span><span class="sc">\\</span><span class="st">(]+)</span><span class="sc">\\</span><span class="st">(([^</span><span class="sc">\\</span><span class="st">)]+)</span><span class="sc">\\</span><span class="st">)&quot;</span>)</span>
-<span id="cb6-428"><a href="#cb6-428" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span> (<span class="fu">any</span>(<span class="fu">is.na</span>(matches))) <span class="fu">return</span>(<span class="st">&quot;NA/NA&quot;</span>)</span>
-<span id="cb6-429"><a href="#cb6-429" aria-hidden="true" tabindex="-1"></a>      outer <span class="ot">&lt;-</span> <span class="fu">str_trim</span>(matches[,<span class="dv">2</span>])</span>
-<span id="cb6-430"><a href="#cb6-430" aria-hidden="true" tabindex="-1"></a>      inner <span class="ot">&lt;-</span> <span class="fu">str_trim</span>(matches[,<span class="dv">3</span>])</span>
-<span id="cb6-431"><a href="#cb6-431" aria-hidden="true" tabindex="-1"></a>      outer_label <span class="ot">&lt;-</span> <span class="fu">extract_roman_base</span>(outer, key_mode)</span>
-<span id="cb6-432"><a href="#cb6-432" aria-hidden="true" tabindex="-1"></a>      inner_label <span class="ot">&lt;-</span> <span class="fu">extract_roman_base</span>(inner, key_mode)</span>
-<span id="cb6-433"><a href="#cb6-433" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span> (<span class="fu">is.na</span>(outer_label) <span class="sc">|</span> <span class="fu">is.na</span>(inner_label)) <span class="fu">return</span>(<span class="st">&quot;NA/NA&quot;</span>)</span>
-<span id="cb6-434"><a href="#cb6-434" aria-hidden="true" tabindex="-1"></a>      outer_qual <span class="ot">&lt;-</span> <span class="fu">str_remove</span>(outer, <span class="fu">fixed</span>(outer_label))</span>
-<span id="cb6-435"><a href="#cb6-435" aria-hidden="true" tabindex="-1"></a>      inner_qual <span class="ot">&lt;-</span> <span class="fu">str_remove</span>(inner, <span class="fu">fixed</span>(inner_label))</span>
-<span id="cb6-436"><a href="#cb6-436" aria-hidden="true" tabindex="-1"></a>      outer_interval <span class="ot">&lt;-</span> <span class="fu">match</span>(outer_label, roman_labels) <span class="sc">-</span> <span class="dv">1</span></span>
-<span id="cb6-437"><a href="#cb6-437" aria-hidden="true" tabindex="-1"></a>      inner_interval <span class="ot">&lt;-</span> <span class="fu">match</span>(inner_label, roman_labels) <span class="sc">-</span> <span class="dv">1</span></span>
-<span id="cb6-438"><a href="#cb6-438" aria-hidden="true" tabindex="-1"></a>      outer_note <span class="ot">&lt;-</span> reverse_chromatic[(tonic_val <span class="sc">+</span> outer_interval) <span class="sc">%%</span> <span class="dv">12</span> <span class="sc">+</span> <span class="dv">1</span>]</span>
-<span id="cb6-439"><a href="#cb6-439" aria-hidden="true" tabindex="-1"></a>      inner_note <span class="ot">&lt;-</span> reverse_chromatic[(tonic_val <span class="sc">+</span> inner_interval) <span class="sc">%%</span> <span class="dv">12</span> <span class="sc">+</span> <span class="dv">1</span>]</span>
-<span id="cb6-440"><a href="#cb6-440" aria-hidden="true" tabindex="-1"></a>      <span class="fu">return</span>(<span class="fu">paste0</span>(outer_note, outer_qual, <span class="st">&quot;(&quot;</span>, inner_note, inner_qual, <span class="st">&quot;)&quot;</span>))</span>
-<span id="cb6-441"><a href="#cb6-441" aria-hidden="true" tabindex="-1"></a>    }</span>
-<span id="cb6-442"><a href="#cb6-442" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-443"><a href="#cb6-443" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Regular chord</span></span>
-<span id="cb6-444"><a href="#cb6-444" aria-hidden="true" tabindex="-1"></a>    roman_label <span class="ot">&lt;-</span> <span class="fu">extract_roman_base</span>(rc, key_mode)</span>
-<span id="cb6-445"><a href="#cb6-445" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">is.na</span>(roman_label)) <span class="fu">return</span>(<span class="st">&quot;NA/NA&quot;</span>)</span>
-<span id="cb6-446"><a href="#cb6-446" aria-hidden="true" tabindex="-1"></a>    qual <span class="ot">&lt;-</span> <span class="fu">str_remove</span>(rc, <span class="fu">fixed</span>(roman_label))</span>
-<span id="cb6-447"><a href="#cb6-447" aria-hidden="true" tabindex="-1"></a>    interval <span class="ot">&lt;-</span> <span class="fu">match</span>(roman_label, roman_labels) <span class="sc">-</span> <span class="dv">1</span></span>
-<span id="cb6-448"><a href="#cb6-448" aria-hidden="true" tabindex="-1"></a>    note <span class="ot">&lt;-</span> reverse_chromatic[(tonic_val <span class="sc">+</span> interval) <span class="sc">%%</span> <span class="dv">12</span> <span class="sc">+</span> <span class="dv">1</span>]</span>
-<span id="cb6-449"><a href="#cb6-449" aria-hidden="true" tabindex="-1"></a>    <span class="fu">paste0</span>(note, qual)</span>
-<span id="cb6-450"><a href="#cb6-450" aria-hidden="true" tabindex="-1"></a>  })</span>
-<span id="cb6-451"><a href="#cb6-451" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-452"><a href="#cb6-452" aria-hidden="true" tabindex="-1"></a>  <span class="fu">paste</span>(real_chords, <span class="at">collapse =</span> <span class="st">&quot;, &quot;</span>)</span>
-<span id="cb6-453"><a href="#cb6-453" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb6-454"><a href="#cb6-454" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-455"><a href="#cb6-455" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">94</span>)</span>
-<span id="cb6-456"><a href="#cb6-456" aria-hidden="true" tabindex="-1"></a>starting_bars <span class="ot">&lt;-</span> bar_info <span class="sc">%&gt;%</span></span>
-<span id="cb6-457"><a href="#cb6-457" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(first_chord <span class="sc">==</span> <span class="st">&quot;I&quot;</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb6-458"><a href="#cb6-458" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(bar)</span>
-<span id="cb6-459"><a href="#cb6-459" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-460"><a href="#cb6-460" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">1</span>) {</span>
-<span id="cb6-461"><a href="#cb6-461" aria-hidden="true" tabindex="-1"></a>  start_bar <span class="ot">&lt;-</span> <span class="fu">sample</span>(starting_bars, <span class="dv">1</span>)</span>
-<span id="cb6-462"><a href="#cb6-462" aria-hidden="true" tabindex="-1"></a>  sequence <span class="ot">&lt;-</span> <span class="fu">c</span>(start_bar)</span>
-<span id="cb6-463"><a href="#cb6-463" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-464"><a href="#cb6-464" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (j <span class="cf">in</span> <span class="dv">2</span><span class="sc">:</span><span class="dv">8</span>) {</span>
-<span id="cb6-465"><a href="#cb6-465" aria-hidden="true" tabindex="-1"></a>    prev_bar <span class="ot">&lt;-</span> sequence[<span class="fu">length</span>(sequence)]</span>
-<span id="cb6-466"><a href="#cb6-466" aria-hidden="true" tabindex="-1"></a>    prev_last <span class="ot">&lt;-</span> bar_info <span class="sc">%&gt;%</span> <span class="fu">filter</span>(bar <span class="sc">==</span> prev_bar) <span class="sc">%&gt;%</span> <span class="fu">pull</span>(last_chord)</span>
-<span id="cb6-467"><a href="#cb6-467" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-468"><a href="#cb6-468" aria-hidden="true" tabindex="-1"></a>    options <span class="ot">&lt;-</span> transition_probs <span class="sc">%&gt;%</span></span>
-<span id="cb6-469"><a href="#cb6-469" aria-hidden="true" tabindex="-1"></a>      <span class="fu">filter</span>(last_chord_from <span class="sc">==</span> prev_last)</span>
-<span id="cb6-470"><a href="#cb6-470" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-471"><a href="#cb6-471" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">length</span>(sequence) <span class="sc">&gt;=</span> <span class="dv">2</span> <span class="sc">&amp;&amp;</span> sequence[<span class="fu">length</span>(sequence)] <span class="sc">==</span> sequence[<span class="fu">length</span>(sequence) <span class="sc">-</span> <span class="dv">1</span>]) {</span>
-<span id="cb6-472"><a href="#cb6-472" aria-hidden="true" tabindex="-1"></a>      options <span class="ot">&lt;-</span> options <span class="sc">%&gt;%</span> <span class="fu">filter</span>(bar_to <span class="sc">!=</span> prev_bar)</span>
-<span id="cb6-473"><a href="#cb6-473" aria-hidden="true" tabindex="-1"></a>    }</span>
-<span id="cb6-474"><a href="#cb6-474" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-475"><a href="#cb6-475" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">nrow</span>(options) <span class="sc">==</span> <span class="dv">0</span>) <span class="cf">break</span></span>
-<span id="cb6-476"><a href="#cb6-476" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-477"><a href="#cb6-477" aria-hidden="true" tabindex="-1"></a>    next_bar <span class="ot">&lt;-</span> <span class="fu">sample</span>(options<span class="sc">$</span>bar_to, <span class="at">size =</span> <span class="dv">1</span>, <span class="at">prob =</span> options<span class="sc">$</span>prob)</span>
-<span id="cb6-478"><a href="#cb6-478" aria-hidden="true" tabindex="-1"></a>    sequence <span class="ot">&lt;-</span> <span class="fu">c</span>(sequence, next_bar)</span>
-<span id="cb6-479"><a href="#cb6-479" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb6-480"><a href="#cb6-480" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-481"><a href="#cb6-481" aria-hidden="true" tabindex="-1"></a>  roman_str <span class="ot">&lt;-</span> <span class="fu">paste</span>(<span class="fu">gsub</span>(<span class="st">&quot;,&quot;</span>, <span class="st">&quot;, &quot;</span>, sequence), <span class="at">collapse =</span> <span class="st">&quot; | &quot;</span>)</span>
-<span id="cb6-482"><a href="#cb6-482" aria-hidden="true" tabindex="-1"></a>  chord_str <span class="ot">&lt;-</span> <span class="fu">paste</span>(<span class="fu">map_chr</span>(sequence, <span class="sc">~</span> <span class="fu">convert_bar_to_chords</span>(.x, <span class="at">key =</span> <span class="st">&quot;C&quot;</span>)), <span class="at">collapse =</span> <span class="st">&quot; | &quot;</span>)</span>
-<span id="cb6-483"><a href="#cb6-483" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-484"><a href="#cb6-484" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">&quot;=== Sequence %02d ===</span><span class="sc">\n</span><span class="st">&quot;</span>, i))</span>
-<span id="cb6-485"><a href="#cb6-485" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">&quot;Roman Numerals:</span><span class="sc">\n</span><span class="st">&quot;</span>, roman_str, <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
-<span id="cb6-486"><a href="#cb6-486" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">&quot;In Key of C:</span><span class="sc">\n</span><span class="st">&quot;</span>, chord_str, <span class="st">&quot;</span><span class="sc">\n\n</span><span class="st">&quot;</span>)</span>
-<span id="cb6-487"><a href="#cb6-487" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb6-488"><a href="#cb6-488" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb6-489"><a href="#cb6-489" aria-hidden="true" tabindex="-1"></a>---</span>
-<span id="cb6-490"><a href="#cb6-490" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-491"><a href="#cb6-491" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Final Thoughts... &lt;small&gt;for now&lt;/small&gt;</span></span>
-<span id="cb6-492"><a href="#cb6-492" aria-hidden="true" tabindex="-1"></a>This updated bigram Markov model represents a significant leap from the original prototype. This model has increased enough in complexity and reduced repetition that it&#39;s ready to have its chord progressions played, patterns analyzed, and usage published for use on my website... later.</span>
+<span id="cb6-176"><a href="#cb6-176" aria-hidden="true" tabindex="-1"></a>Well, in my narrative for the first model, I said I would just focus on the positives. Now is the time to understand the negatives of my previous model, so you can understand the changes I made in the updated model.  </span>
+<span id="cb6-177"><a href="#cb6-177" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-178"><a href="#cb6-178" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Multiple chords within bars**  </span>
+<span id="cb6-179"><a href="#cb6-179" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-180"><a href="#cb6-180" aria-hidden="true" tabindex="-1"></a>**PROBLEM**: If you recall, each chord progression in the previous model allotted one chord per bar   </span>
+<span id="cb6-181"><a href="#cb6-181" aria-hidden="true" tabindex="-1"></a>(e.g. <span class="in">`Sequence 3`</span>:  C | Dm7 | G7 | C7 | Fmaj7 | Bm7b5 | E7b9 | A7). This made sense for simplicity&#39;s sake, but that&#39;s not how jazz progressions work in reality; often times, there are multiple chord changes within a singular bar. So, I had to figure out a way to impliment that into my model.</span>
+<span id="cb6-182"><a href="#cb6-182" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-183"><a href="#cb6-183" aria-hidden="true" tabindex="-1"></a>**FIX**: I redesigned the model architecture around full bars rather than individual chords. Instead of treating each chord as an atomic unit, I treated each bar as a block of harmonic context - whether it contains one chord or several. The key insight was to condition transitions not from chord to chord, but from bar to bar, based on the relationship between the last chord of the previous bar and the first chord of the next.</span>
+<span id="cb6-184"><a href="#cb6-184" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-185"><a href="#cb6-185" aria-hidden="true" tabindex="-1"></a>The updated code has the following logic tunnel:</span>
+<span id="cb6-186"><a href="#cb6-186" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-187"><a href="#cb6-187" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>The model starts with a predefined starting chord (e.g., &quot;I&quot;).</span>
+<span id="cb6-188"><a href="#cb6-188" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-189"><a href="#cb6-189" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>It searches the bar metadata for all bars that begin with that chord.</span>
+<span id="cb6-190"><a href="#cb6-190" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-191"><a href="#cb6-191" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>From that filtered set, it selects one bar (using probabilistic frequencies) to serve as the first bar of the sequence.</span>
+<span id="cb6-192"><a href="#cb6-192" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-193"><a href="#cb6-193" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>It then extracts the last chord of that selected bar.</span>
+<span id="cb6-194"><a href="#cb6-194" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-195"><a href="#cb6-195" aria-hidden="true" tabindex="-1"></a><span class="ss">5. </span>Using the transition table, it finds bars whose first chord transitions well from the previous bar’s last chord.</span>
+<span id="cb6-196"><a href="#cb6-196" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-197"><a href="#cb6-197" aria-hidden="true" tabindex="-1"></a><span class="ss">6. </span>From those matching bars, it samples the next bar according to the learned transition probabilities.</span>
+<span id="cb6-198"><a href="#cb6-198" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-199"><a href="#cb6-199" aria-hidden="true" tabindex="-1"></a><span class="ss">7. </span>This process repeats:</span>
+<span id="cb6-200"><a href="#cb6-200" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-201"><a href="#cb6-201" aria-hidden="true" tabindex="-1"></a><span class="ss"> - </span>Each time, the last chord of the current bar is used to condition the choice of the next bar’s first chord.</span>
+<span id="cb6-202"><a href="#cb6-202" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-203"><a href="#cb6-203" aria-hidden="true" tabindex="-1"></a><span class="ss"> - </span>Only transitions that preserve chord-to-chord continuity across bar boundaries are considered.</span>
+<span id="cb6-204"><a href="#cb6-204" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-205"><a href="#cb6-205" aria-hidden="true" tabindex="-1"></a>The result is a bar-level sequence, where each measure *can* contain multiple chords (it&#39;s still possible to only have one chord within a bar), but all transitions are both harmonically valid and empirically grounded in real jazz progressions.</span>
+<span id="cb6-206"><a href="#cb6-206" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-207"><a href="#cb6-207" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Training the progression on data with the same chord quality**</span>
+<span id="cb6-208"><a href="#cb6-208" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-209"><a href="#cb6-209" aria-hidden="true" tabindex="-1"></a>**PROBLEM**: Another issue that popped up in the previous model was some chords being flat-out weird. Here are some chord changes that the previous model suggested (in my own experimentation) which I found to be odd:  </span>
+<span id="cb6-210"><a href="#cb6-210" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-211"><a href="#cb6-211" aria-hidden="true" tabindex="-1"></a><span class="ss"> - </span>#I/♭II7 → Im6 (Why is the #I resolving to a minor I)</span>
+<span id="cb6-212"><a href="#cb6-212" aria-hidden="true" tabindex="-1"></a> </span>
+<span id="cb6-213"><a href="#cb6-213" aria-hidden="true" tabindex="-1"></a><span class="ss"> - </span>#V/♭VI7 → #VI/♭VIImaj7 (Neither #V or #VI are in a major key)</span>
+<span id="cb6-214"><a href="#cb6-214" aria-hidden="true" tabindex="-1"></a> </span>
+<span id="cb6-215"><a href="#cb6-215" aria-hidden="true" tabindex="-1"></a><span class="ss"> - </span>#IV/♭V07 → Im7/V (Same problem as the above chord change)</span>
+<span id="cb6-216"><a href="#cb6-216" aria-hidden="true" tabindex="-1"></a> </span>
+<span id="cb6-217"><a href="#cb6-217" aria-hidden="true" tabindex="-1"></a>In case you haven&#39;t noticed, the problem with these chord changes is that none of them make sense in the context of a major key (which all my progressions are based in). What I realized is that the model was sampling from major *as well as* minor progressions, which throws off generated progressions in major keys. As you can see below, all three of these individual chord changes which I noted as &quot;odd&quot; come from minor progressions in the database.</span>
+<span id="cb6-218"><a href="#cb6-218" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-219"><a href="#cb6-219" aria-hidden="true" tabindex="-1"></a><span class="in">```{r, echo=FALSE}</span></span>
+<span id="cb6-220"><a href="#cb6-220" aria-hidden="true" tabindex="-1"></a><span class="in">selected_songs &lt;- CPWK %&gt;%</span></span>
+<span id="cb6-221"><a href="#cb6-221" aria-hidden="true" tabindex="-1"></a><span class="in">  filter(Title %in% c(&quot;After You&#39;ve Gone&quot;, &quot;Cry Me A River&quot;, &quot;Alfie&#39;s Theme&quot;)) %&gt;%</span></span>
+<span id="cb6-222"><a href="#cb6-222" aria-hidden="true" tabindex="-1"></a><span class="in">  select(Title, Key, RomanNumeralProgression, Mode)</span></span>
+<span id="cb6-223"><a href="#cb6-223" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-224"><a href="#cb6-224" aria-hidden="true" tabindex="-1"></a><span class="in">kable(selected_songs, caption = &quot;Selected Songs with Unusual Chord Transitions&quot;)</span></span>
+<span id="cb6-225"><a href="#cb6-225" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb6-226"><a href="#cb6-226" aria-hidden="true" tabindex="-1"></a>&lt;br&gt;</span>
+<span id="cb6-227"><a href="#cb6-227" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-228"><a href="#cb6-228" aria-hidden="true" tabindex="-1"></a><span class="ss"> - </span><span class="in">`#I/♭II7 → Im6`</span> appears in “Cry Me A River” (a song in a minor key)  </span>
+<span id="cb6-229"><a href="#cb6-229" aria-hidden="true" tabindex="-1"></a> </span>
+<span id="cb6-230"><a href="#cb6-230" aria-hidden="true" tabindex="-1"></a><span class="ss"> - </span><span class="in">`#V/♭VI7 → #VI/♭VIImaj7`</span> appears in “After You’ve Gone” (a song in a minor key)  </span>
+<span id="cb6-231"><a href="#cb6-231" aria-hidden="true" tabindex="-1"></a> </span>
+<span id="cb6-232"><a href="#cb6-232" aria-hidden="true" tabindex="-1"></a><span class="ss"> - </span><span class="in">`#IV/♭V07 → Im7/V`</span> appears in “Alfie’s Theme” (a song in a minor key)</span>
+<span id="cb6-233"><a href="#cb6-233" aria-hidden="true" tabindex="-1"></a> </span>
+<span id="cb6-234"><a href="#cb6-234" aria-hidden="true" tabindex="-1"></a>**FIX**: I updated the model to only train on progressions that match the mode (major or minor) of the starting chord. That means:</span>
+<span id="cb6-235"><a href="#cb6-235" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-236"><a href="#cb6-236" aria-hidden="true" tabindex="-1"></a><span class="ss"> - </span>If I set the starting chord to &quot;I&quot;, the model will only train from major-mode chord progressions.</span>
+<span id="cb6-237"><a href="#cb6-237" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-238"><a href="#cb6-238" aria-hidden="true" tabindex="-1"></a><span class="ss"> - </span>If I set it to &quot;Im&quot;, the model will only use minor-mode chord progressions.</span>
+<span id="cb6-239"><a href="#cb6-239" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-240"><a href="#cb6-240" aria-hidden="true" tabindex="-1"></a>This ensures that the statistical patterns it learns are harmonically consistent with the type of progression being generated.  </span>
+<span id="cb6-241"><a href="#cb6-241" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-242"><a href="#cb6-242" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**Eliminating chord repitition**</span>
+<span id="cb6-243"><a href="#cb6-243" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-244"><a href="#cb6-244" aria-hidden="true" tabindex="-1"></a>**PROBLEM**: Of the many chord changes that can occur in jazz, one of the most common is &quot;resting&quot; on a chord (i.e. repeating the same chord). This typically only occurs for two or three bars, but my model doesn&#39;t know that. Because of the frequency with which &quot;resting&quot; occurs, my model often generates the same chord repeatedly. For example, here are some laughable chord progressions my previous model generated:  </span>
+<span id="cb6-245"><a href="#cb6-245" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-246"><a href="#cb6-246" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">` C | C | C | C | C | C | Am7 | Dm7 `</span>  </span>
+<span id="cb6-247"><a href="#cb6-247" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-248"><a href="#cb6-248" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">` C | C | C | C | G7 | C07 | Cmaj7 | Cmaj7 `</span>  </span>
+<span id="cb6-249"><a href="#cb6-249" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-250"><a href="#cb6-250" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">` C | D#/E | Cmaj7/E | F6 | F6 | F6 | F6 | F#/G `</span>  </span>
+<span id="cb6-251"><a href="#cb6-251" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-252"><a href="#cb6-252" aria-hidden="true" tabindex="-1"></a>It&#39;s funny but also incredibly stupid. </span>
+<span id="cb6-253"><a href="#cb6-253" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-254"><a href="#cb6-254" aria-hidden="true" tabindex="-1"></a>**FIX**: I simply hard-coded the model to avoid excessive repetition. Specifically, if the same bar is repeated twice, the model is barred from picking it for a third time and must deviate.</span>
+<span id="cb6-255"><a href="#cb6-255" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-256"><a href="#cb6-256" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Updated Model</span></span>
+<span id="cb6-257"><a href="#cb6-257" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-260"><a href="#cb6-260" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb6-261"><a href="#cb6-261" aria-hidden="true" tabindex="-1"></a>tokenize_bars <span class="ot">&lt;-</span> <span class="cf">function</span>(prog) {</span>
+<span id="cb6-262"><a href="#cb6-262" aria-hidden="true" tabindex="-1"></a>  bars <span class="ot">&lt;-</span> <span class="fu">str_split</span>(prog, <span class="st">&quot;</span><span class="sc">\\</span><span class="st">|&quot;</span>)[[<span class="dv">1</span>]]</span>
+<span id="cb6-263"><a href="#cb6-263" aria-hidden="true" tabindex="-1"></a>  bars <span class="ot">&lt;-</span> <span class="fu">str_trim</span>(bars)</span>
+<span id="cb6-264"><a href="#cb6-264" aria-hidden="true" tabindex="-1"></a>  bars[bars <span class="sc">!=</span> <span class="st">&quot;&quot;</span>]</span>
+<span id="cb6-265"><a href="#cb6-265" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb6-266"><a href="#cb6-266" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-267"><a href="#cb6-267" aria-hidden="true" tabindex="-1"></a>get_mode_from_chord <span class="ot">&lt;-</span> <span class="cf">function</span>(chord) {</span>
+<span id="cb6-268"><a href="#cb6-268" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (chord <span class="sc">==</span> <span class="st">&quot;Im&quot;</span>) <span class="fu">return</span>(<span class="st">&quot;minor&quot;</span>)</span>
+<span id="cb6-269"><a href="#cb6-269" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (chord <span class="sc">==</span> <span class="st">&quot;I&quot;</span>) <span class="fu">return</span>(<span class="st">&quot;major&quot;</span>)</span>
+<span id="cb6-270"><a href="#cb6-270" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(<span class="cn">NA</span>)</span>
+<span id="cb6-271"><a href="#cb6-271" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb6-272"><a href="#cb6-272" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-273"><a href="#cb6-273" aria-hidden="true" tabindex="-1"></a>bar_info <span class="ot">&lt;-</span> CPWK<span class="sc">$</span>RomanNumeralProgression <span class="sc">%&gt;%</span></span>
+<span id="cb6-274"><a href="#cb6-274" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map</span>(tokenize_bars) <span class="sc">%&gt;%</span></span>
+<span id="cb6-275"><a href="#cb6-275" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unlist</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb6-276"><a href="#cb6-276" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unique</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb6-277"><a href="#cb6-277" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tibble</span>(<span class="at">bar =</span> .) <span class="sc">%&gt;%</span></span>
+<span id="cb6-278"><a href="#cb6-278" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb6-279"><a href="#cb6-279" aria-hidden="true" tabindex="-1"></a>    <span class="at">chords =</span> <span class="fu">map</span>(bar, <span class="sc">~</span> <span class="fu">str_split</span>(.x, <span class="st">&quot;,&quot;</span>)[[<span class="dv">1</span>]] <span class="sc">%&gt;%</span> <span class="fu">str_trim</span>()),</span>
+<span id="cb6-280"><a href="#cb6-280" aria-hidden="true" tabindex="-1"></a>    <span class="at">first_chord =</span> <span class="fu">map_chr</span>(chords, <span class="sc">~</span> .x[<span class="dv">1</span>]),</span>
+<span id="cb6-281"><a href="#cb6-281" aria-hidden="true" tabindex="-1"></a>    <span class="at">last_chord =</span> <span class="fu">map_chr</span>(chords, <span class="sc">~</span> .x[<span class="fu">length</span>(.x)])</span>
+<span id="cb6-282"><a href="#cb6-282" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb6-283"><a href="#cb6-283" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-284"><a href="#cb6-284" aria-hidden="true" tabindex="-1"></a>starting_chord <span class="ot">&lt;-</span> <span class="st">&quot;I&quot;</span>  <span class="co"># Or use &quot;I-&quot; for minor sequences</span></span>
+<span id="cb6-285"><a href="#cb6-285" aria-hidden="true" tabindex="-1"></a>mode_to_use <span class="ot">&lt;-</span> <span class="fu">get_mode_from_chord</span>(starting_chord)</span>
+<span id="cb6-286"><a href="#cb6-286" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-287"><a href="#cb6-287" aria-hidden="true" tabindex="-1"></a>CPWK_mode <span class="ot">&lt;-</span> CPWK <span class="sc">%&gt;%</span></span>
+<span id="cb6-288"><a href="#cb6-288" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(Mode <span class="sc">==</span> mode_to_use)</span>
+<span id="cb6-289"><a href="#cb6-289" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-290"><a href="#cb6-290" aria-hidden="true" tabindex="-1"></a>bar_info <span class="ot">&lt;-</span> CPWK <span class="sc">%&gt;%</span></span>
+<span id="cb6-291"><a href="#cb6-291" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(Mode <span class="sc">==</span> mode_to_use) <span class="sc">%&gt;%</span></span>
+<span id="cb6-292"><a href="#cb6-292" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(RomanNumeralProgression) <span class="sc">%&gt;%</span></span>
+<span id="cb6-293"><a href="#cb6-293" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map</span>(tokenize_bars) <span class="sc">%&gt;%</span></span>
+<span id="cb6-294"><a href="#cb6-294" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unlist</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb6-295"><a href="#cb6-295" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unique</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb6-296"><a href="#cb6-296" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tibble</span>(<span class="at">bar =</span> .) <span class="sc">%&gt;%</span></span>
+<span id="cb6-297"><a href="#cb6-297" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb6-298"><a href="#cb6-298" aria-hidden="true" tabindex="-1"></a>    <span class="at">chords =</span> <span class="fu">map</span>(bar, <span class="sc">~</span> <span class="fu">str_split</span>(.x, <span class="st">&quot;,&quot;</span>)[[<span class="dv">1</span>]] <span class="sc">%&gt;%</span> <span class="fu">str_trim</span>()),</span>
+<span id="cb6-299"><a href="#cb6-299" aria-hidden="true" tabindex="-1"></a>    <span class="at">first_chord =</span> <span class="fu">map_chr</span>(chords, <span class="sc">~</span> .x[<span class="dv">1</span>]),</span>
+<span id="cb6-300"><a href="#cb6-300" aria-hidden="true" tabindex="-1"></a>    <span class="at">last_chord =</span> <span class="fu">map_chr</span>(chords, <span class="sc">~</span> .x[<span class="fu">length</span>(.x)])</span>
+<span id="cb6-301"><a href="#cb6-301" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb6-302"><a href="#cb6-302" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-303"><a href="#cb6-303" aria-hidden="true" tabindex="-1"></a><span class="co"># Building conditional transition table based last -&gt; first chord</span></span>
+<span id="cb6-304"><a href="#cb6-304" aria-hidden="true" tabindex="-1"></a>bar_sequences <span class="ot">&lt;-</span> CPWK <span class="sc">%&gt;%</span></span>
+<span id="cb6-305"><a href="#cb6-305" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(Mode <span class="sc">==</span> mode_to_use) <span class="sc">%&gt;%</span></span>
+<span id="cb6-306"><a href="#cb6-306" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(RomanNumeralProgression) <span class="sc">%&gt;%</span></span>
+<span id="cb6-307"><a href="#cb6-307" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map</span>(tokenize_bars)</span>
+<span id="cb6-308"><a href="#cb6-308" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-309"><a href="#cb6-309" aria-hidden="true" tabindex="-1"></a>bar_transitions <span class="ot">&lt;-</span> <span class="fu">map</span>(bar_sequences, <span class="cf">function</span>(seq) {</span>
+<span id="cb6-310"><a href="#cb6-310" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">length</span>(seq) <span class="sc">&lt;</span> <span class="dv">2</span>) <span class="fu">return</span>(<span class="cn">NULL</span>)</span>
+<span id="cb6-311"><a href="#cb6-311" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tibble</span>(</span>
+<span id="cb6-312"><a href="#cb6-312" aria-hidden="true" tabindex="-1"></a>    <span class="at">bar_from =</span> <span class="fu">head</span>(seq, <span class="sc">-</span><span class="dv">1</span>),</span>
+<span id="cb6-313"><a href="#cb6-313" aria-hidden="true" tabindex="-1"></a>    <span class="at">bar_to   =</span> <span class="fu">tail</span>(seq, <span class="sc">-</span><span class="dv">1</span>)</span>
+<span id="cb6-314"><a href="#cb6-314" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb6-315"><a href="#cb6-315" aria-hidden="true" tabindex="-1"></a>}) <span class="sc">%&gt;%</span> <span class="fu">bind_rows</span>()</span>
+<span id="cb6-316"><a href="#cb6-316" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-317"><a href="#cb6-317" aria-hidden="true" tabindex="-1"></a>bar_transitions <span class="ot">&lt;-</span> bar_transitions <span class="sc">%&gt;%</span></span>
+<span id="cb6-318"><a href="#cb6-318" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(bar_info <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="at">bar_from =</span> bar, <span class="at">last_chord_from =</span> last_chord), <span class="at">by =</span> <span class="st">&quot;bar_from&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb6-319"><a href="#cb6-319" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(bar_info <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="at">bar_to =</span> bar, <span class="at">first_chord_to =</span> first_chord), <span class="at">by =</span> <span class="st">&quot;bar_to&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb6-320"><a href="#cb6-320" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(last_chord_from), <span class="sc">!</span><span class="fu">is.na</span>(first_chord_to))</span>
+<span id="cb6-321"><a href="#cb6-321" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-322"><a href="#cb6-322" aria-hidden="true" tabindex="-1"></a>transition_counts <span class="ot">&lt;-</span> bar_transitions <span class="sc">%&gt;%</span></span>
+<span id="cb6-323"><a href="#cb6-323" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(last_chord_from, first_chord_to, bar_to, <span class="at">name =</span> <span class="st">&quot;n&quot;</span>)</span>
+<span id="cb6-324"><a href="#cb6-324" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-325"><a href="#cb6-325" aria-hidden="true" tabindex="-1"></a>transition_probs <span class="ot">&lt;-</span> transition_counts <span class="sc">%&gt;%</span></span>
+<span id="cb6-326"><a href="#cb6-326" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(last_chord_from) <span class="sc">%&gt;%</span></span>
+<span id="cb6-327"><a href="#cb6-327" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">prob =</span> n <span class="sc">/</span> <span class="fu">sum</span>(n)) <span class="sc">%&gt;%</span></span>
+<span id="cb6-328"><a href="#cb6-328" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
+<span id="cb6-329"><a href="#cb6-329" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-330"><a href="#cb6-330" aria-hidden="true" tabindex="-1"></a>generate_bar_sequence <span class="ot">&lt;-</span> <span class="cf">function</span>(<span class="at">num_bars =</span> <span class="dv">8</span>) {</span>
+<span id="cb6-331"><a href="#cb6-331" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Start from a random bar</span></span>
+<span id="cb6-332"><a href="#cb6-332" aria-hidden="true" tabindex="-1"></a>  start_bar <span class="ot">&lt;-</span> <span class="fu">sample</span>(bar_info<span class="sc">$</span>bar, <span class="dv">1</span>)</span>
+<span id="cb6-333"><a href="#cb6-333" aria-hidden="true" tabindex="-1"></a>  sequence <span class="ot">&lt;-</span> <span class="fu">c</span>(start_bar)</span>
+<span id="cb6-334"><a href="#cb6-334" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-335"><a href="#cb6-335" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">2</span><span class="sc">:</span>num_bars) {</span>
+<span id="cb6-336"><a href="#cb6-336" aria-hidden="true" tabindex="-1"></a>    prev_bar <span class="ot">&lt;-</span> sequence[<span class="fu">length</span>(sequence)]</span>
+<span id="cb6-337"><a href="#cb6-337" aria-hidden="true" tabindex="-1"></a>    prev_last <span class="ot">&lt;-</span> bar_info <span class="sc">%&gt;%</span> <span class="fu">filter</span>(bar <span class="sc">==</span> prev_bar) <span class="sc">%&gt;%</span> <span class="fu">pull</span>(last_chord)</span>
+<span id="cb6-338"><a href="#cb6-338" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-339"><a href="#cb6-339" aria-hidden="true" tabindex="-1"></a>    options <span class="ot">&lt;-</span> transition_probs <span class="sc">%&gt;%</span></span>
+<span id="cb6-340"><a href="#cb6-340" aria-hidden="true" tabindex="-1"></a>      <span class="fu">filter</span>(last_chord_from <span class="sc">==</span> prev_last)</span>
+<span id="cb6-341"><a href="#cb6-341" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-342"><a href="#cb6-342" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">nrow</span>(options) <span class="sc">==</span> <span class="dv">0</span>) <span class="cf">break</span>  <span class="co"># no valid continuation</span></span>
+<span id="cb6-343"><a href="#cb6-343" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-344"><a href="#cb6-344" aria-hidden="true" tabindex="-1"></a>    next_bar <span class="ot">&lt;-</span> <span class="fu">sample</span>(options<span class="sc">$</span>bar_to, <span class="at">size =</span> <span class="dv">1</span>, <span class="at">prob =</span> options<span class="sc">$</span>prob)</span>
+<span id="cb6-345"><a href="#cb6-345" aria-hidden="true" tabindex="-1"></a>    sequence <span class="ot">&lt;-</span> <span class="fu">c</span>(sequence, next_bar)</span>
+<span id="cb6-346"><a href="#cb6-346" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb6-347"><a href="#cb6-347" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-348"><a href="#cb6-348" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(sequence)</span>
+<span id="cb6-349"><a href="#cb6-349" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb6-350"><a href="#cb6-350" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb6-351"><a href="#cb6-351" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-352"><a href="#cb6-352" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Revamped Progression Generation</span></span>
+<span id="cb6-353"><a href="#cb6-353" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-356"><a href="#cb6-356" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb6-357"><a href="#cb6-357" aria-hidden="true" tabindex="-1"></a>starting_bars <span class="ot">&lt;-</span> bar_info <span class="sc">%&gt;%</span></span>
+<span id="cb6-358"><a href="#cb6-358" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(first_chord <span class="sc">==</span> <span class="st">&quot;I&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb6-359"><a href="#cb6-359" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(bar)</span>
+<span id="cb6-360"><a href="#cb6-360" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-361"><a href="#cb6-361" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>) {</span>
+<span id="cb6-362"><a href="#cb6-362" aria-hidden="true" tabindex="-1"></a>  start_bar <span class="ot">&lt;-</span> <span class="fu">sample</span>(starting_bars, <span class="dv">1</span>)</span>
+<span id="cb6-363"><a href="#cb6-363" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb6-364"><a href="#cb6-364" aria-hidden="true" tabindex="-1"></a>  sequence <span class="ot">&lt;-</span> <span class="fu">c</span>(start_bar)</span>
+<span id="cb6-365"><a href="#cb6-365" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (j <span class="cf">in</span> <span class="dv">2</span><span class="sc">:</span><span class="dv">8</span>) {</span>
+<span id="cb6-366"><a href="#cb6-366" aria-hidden="true" tabindex="-1"></a>    prev_bar <span class="ot">&lt;-</span> sequence[<span class="fu">length</span>(sequence)]</span>
+<span id="cb6-367"><a href="#cb6-367" aria-hidden="true" tabindex="-1"></a>    prev_last <span class="ot">&lt;-</span> bar_info <span class="sc">%&gt;%</span> <span class="fu">filter</span>(bar <span class="sc">==</span> prev_bar) <span class="sc">%&gt;%</span> <span class="fu">pull</span>(last_chord)</span>
+<span id="cb6-368"><a href="#cb6-368" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-369"><a href="#cb6-369" aria-hidden="true" tabindex="-1"></a>    options <span class="ot">&lt;-</span> transition_probs <span class="sc">%&gt;%</span></span>
+<span id="cb6-370"><a href="#cb6-370" aria-hidden="true" tabindex="-1"></a>      <span class="fu">filter</span>(last_chord_from <span class="sc">==</span> prev_last)</span>
+<span id="cb6-371"><a href="#cb6-371" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb6-372"><a href="#cb6-372" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">length</span>(sequence) <span class="sc">&gt;=</span> <span class="dv">2</span> <span class="sc">&amp;&amp;</span> sequence[<span class="fu">length</span>(sequence)] <span class="sc">==</span> sequence[<span class="fu">length</span>(sequence) <span class="sc">-</span> <span class="dv">1</span>]) {</span>
+<span id="cb6-373"><a href="#cb6-373" aria-hidden="true" tabindex="-1"></a>        options <span class="ot">&lt;-</span> options <span class="sc">%&gt;%</span> <span class="fu">filter</span>(bar_to <span class="sc">!=</span> prev_bar)</span>
+<span id="cb6-374"><a href="#cb6-374" aria-hidden="true" tabindex="-1"></a>        }</span>
+<span id="cb6-375"><a href="#cb6-375" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-376"><a href="#cb6-376" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">nrow</span>(options) <span class="sc">==</span> <span class="dv">0</span>) <span class="cf">break</span></span>
+<span id="cb6-377"><a href="#cb6-377" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-378"><a href="#cb6-378" aria-hidden="true" tabindex="-1"></a>    next_bar <span class="ot">&lt;-</span> <span class="fu">sample</span>(options<span class="sc">$</span>bar_to, <span class="at">size =</span> <span class="dv">1</span>, <span class="at">prob =</span> options<span class="sc">$</span>prob)</span>
+<span id="cb6-379"><a href="#cb6-379" aria-hidden="true" tabindex="-1"></a>    sequence <span class="ot">&lt;-</span> <span class="fu">c</span>(sequence, next_bar)</span>
+<span id="cb6-380"><a href="#cb6-380" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb6-381"><a href="#cb6-381" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-382"><a href="#cb6-382" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">&quot;=== Sequence %02d ===</span><span class="sc">\n</span><span class="st">&quot;</span>, i))</span>
+<span id="cb6-383"><a href="#cb6-383" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">&quot;Roman Numerals:</span><span class="sc">\n</span><span class="st">&quot;</span>, <span class="fu">paste</span>(<span class="fu">gsub</span>(<span class="st">&quot;,&quot;</span>, <span class="st">&quot;, &quot;</span>, sequence), <span class="at">collapse =</span> <span class="st">&quot; | &quot;</span>), <span class="st">&quot;</span><span class="sc">\n\n</span><span class="st">&quot;</span>)</span>
+<span id="cb6-384"><a href="#cb6-384" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb6-385"><a href="#cb6-385" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-386"><a href="#cb6-386" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb6-387"><a href="#cb6-387" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb6-388"><a href="#cb6-388" aria-hidden="true" tabindex="-1"></a>With the previous model, I was just happy that it was semi-functional. Now, these are some serious-looking, complex, functional chord progressions! I don&#39;t need to go through gobs of music theory now to prove that - *I&#39;ll showcase some generated chord progressions and examples of correct music theory in a later update* - but this is proof of a working, complex, jazz chord progression generator.</span>
+<span id="cb6-389"><a href="#cb6-389" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-390"><a href="#cb6-390" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Converting Back to Standard Chords </span></span>
+<span id="cb6-391"><a href="#cb6-391" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-392"><a href="#cb6-392" aria-hidden="true" tabindex="-1"></a>As a final touch-up, I wrote some additional code to convert the generated chords back into the key of C, making them playable. Just like last time! Playability is still the final goal.</span>
+<span id="cb6-393"><a href="#cb6-393" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-396"><a href="#cb6-396" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb6-397"><a href="#cb6-397" aria-hidden="true" tabindex="-1"></a>convert_bar_to_chords <span class="ot">&lt;-</span> <span class="cf">function</span>(bar, <span class="at">key =</span> <span class="st">&quot;C&quot;</span>) {</span>
+<span id="cb6-398"><a href="#cb6-398" aria-hidden="true" tabindex="-1"></a>  tonic_val <span class="ot">&lt;-</span> chromatic_scale[[<span class="fu">extract_root</span>(key)]]</span>
+<span id="cb6-399"><a href="#cb6-399" aria-hidden="true" tabindex="-1"></a>  is_minor <span class="ot">&lt;-</span> <span class="fu">is_minor_key</span>(key)</span>
+<span id="cb6-400"><a href="#cb6-400" aria-hidden="true" tabindex="-1"></a>  key_mode <span class="ot">&lt;-</span> <span class="cf">if</span> (is_minor) <span class="st">&quot;minor&quot;</span> <span class="cf">else</span> <span class="st">&quot;major&quot;</span></span>
+<span id="cb6-401"><a href="#cb6-401" aria-hidden="true" tabindex="-1"></a>  roman_labels <span class="ot">&lt;-</span> <span class="cf">if</span> (is_minor) minor_roman <span class="cf">else</span> major_roman</span>
+<span id="cb6-402"><a href="#cb6-402" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-403"><a href="#cb6-403" aria-hidden="true" tabindex="-1"></a>  chords <span class="ot">&lt;-</span> <span class="fu">str_split</span>(<span class="fu">str_trim</span>(bar), <span class="st">&quot;,&quot;</span>)[[<span class="dv">1</span>]] <span class="sc">%&gt;%</span> <span class="fu">str_trim</span>()</span>
+<span id="cb6-404"><a href="#cb6-404" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-405"><a href="#cb6-405" aria-hidden="true" tabindex="-1"></a>  real_chords <span class="ot">&lt;-</span> <span class="fu">sapply</span>(chords, <span class="cf">function</span>(rc) {</span>
+<span id="cb6-406"><a href="#cb6-406" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (rc <span class="sc">==</span> <span class="st">&quot;&quot;</span>) <span class="fu">return</span>(<span class="st">&quot;&quot;</span>)</span>
+<span id="cb6-407"><a href="#cb6-407" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-408"><a href="#cb6-408" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Slash chord</span></span>
+<span id="cb6-409"><a href="#cb6-409" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">str_detect</span>(rc, <span class="st">&quot;/&quot;</span>) <span class="sc">&amp;</span> <span class="sc">!</span><span class="fu">str_detect</span>(rc, <span class="st">&quot;</span><span class="sc">\\</span><span class="st">(&quot;</span>)) {</span>
+<span id="cb6-410"><a href="#cb6-410" aria-hidden="true" tabindex="-1"></a>      parts <span class="ot">&lt;-</span> <span class="fu">str_split</span>(rc, <span class="st">&quot;/&quot;</span>)[[<span class="dv">1</span>]]</span>
+<span id="cb6-411"><a href="#cb6-411" aria-hidden="true" tabindex="-1"></a>      main <span class="ot">&lt;-</span> <span class="fu">str_trim</span>(parts[<span class="dv">1</span>])</span>
+<span id="cb6-412"><a href="#cb6-412" aria-hidden="true" tabindex="-1"></a>      bass <span class="ot">&lt;-</span> <span class="fu">str_trim</span>(parts[<span class="dv">2</span>])</span>
+<span id="cb6-413"><a href="#cb6-413" aria-hidden="true" tabindex="-1"></a>      main_label <span class="ot">&lt;-</span> <span class="fu">extract_roman_base</span>(main, key_mode)</span>
+<span id="cb6-414"><a href="#cb6-414" aria-hidden="true" tabindex="-1"></a>      bass_label <span class="ot">&lt;-</span> <span class="fu">extract_roman_base</span>(bass, key_mode)</span>
+<span id="cb6-415"><a href="#cb6-415" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span> (<span class="fu">is.na</span>(main_label) <span class="sc">|</span> <span class="fu">is.na</span>(bass_label)) <span class="fu">return</span>(<span class="st">&quot;NA/NA&quot;</span>)</span>
+<span id="cb6-416"><a href="#cb6-416" aria-hidden="true" tabindex="-1"></a>      main_qual <span class="ot">&lt;-</span> <span class="fu">str_remove</span>(main, <span class="fu">fixed</span>(main_label))</span>
+<span id="cb6-417"><a href="#cb6-417" aria-hidden="true" tabindex="-1"></a>      bass_interval <span class="ot">&lt;-</span> <span class="fu">match</span>(bass_label, roman_labels) <span class="sc">-</span> <span class="dv">1</span></span>
+<span id="cb6-418"><a href="#cb6-418" aria-hidden="true" tabindex="-1"></a>      main_interval <span class="ot">&lt;-</span> <span class="fu">match</span>(main_label, roman_labels) <span class="sc">-</span> <span class="dv">1</span></span>
+<span id="cb6-419"><a href="#cb6-419" aria-hidden="true" tabindex="-1"></a>      bass_note <span class="ot">&lt;-</span> reverse_chromatic[(tonic_val <span class="sc">+</span> bass_interval) <span class="sc">%%</span> <span class="dv">12</span> <span class="sc">+</span> <span class="dv">1</span>]</span>
+<span id="cb6-420"><a href="#cb6-420" aria-hidden="true" tabindex="-1"></a>      main_note <span class="ot">&lt;-</span> reverse_chromatic[(tonic_val <span class="sc">+</span> main_interval) <span class="sc">%%</span> <span class="dv">12</span> <span class="sc">+</span> <span class="dv">1</span>]</span>
+<span id="cb6-421"><a href="#cb6-421" aria-hidden="true" tabindex="-1"></a>      <span class="fu">return</span>(<span class="fu">paste0</span>(main_note, main_qual, <span class="st">&quot;/&quot;</span>, bass_note))</span>
+<span id="cb6-422"><a href="#cb6-422" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb6-423"><a href="#cb6-423" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-424"><a href="#cb6-424" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Substitution chord</span></span>
+<span id="cb6-425"><a href="#cb6-425" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">str_detect</span>(rc, <span class="st">&quot;</span><span class="sc">\\</span><span class="st">(&quot;</span>)) {</span>
+<span id="cb6-426"><a href="#cb6-426" aria-hidden="true" tabindex="-1"></a>      matches <span class="ot">&lt;-</span> <span class="fu">str_match</span>(rc, <span class="st">&quot;^([^</span><span class="sc">\\</span><span class="st">(]+)</span><span class="sc">\\</span><span class="st">(([^</span><span class="sc">\\</span><span class="st">)]+)</span><span class="sc">\\</span><span class="st">)&quot;</span>)</span>
+<span id="cb6-427"><a href="#cb6-427" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span> (<span class="fu">any</span>(<span class="fu">is.na</span>(matches))) <span class="fu">return</span>(<span class="st">&quot;NA/NA&quot;</span>)</span>
+<span id="cb6-428"><a href="#cb6-428" aria-hidden="true" tabindex="-1"></a>      outer <span class="ot">&lt;-</span> <span class="fu">str_trim</span>(matches[,<span class="dv">2</span>])</span>
+<span id="cb6-429"><a href="#cb6-429" aria-hidden="true" tabindex="-1"></a>      inner <span class="ot">&lt;-</span> <span class="fu">str_trim</span>(matches[,<span class="dv">3</span>])</span>
+<span id="cb6-430"><a href="#cb6-430" aria-hidden="true" tabindex="-1"></a>      outer_label <span class="ot">&lt;-</span> <span class="fu">extract_roman_base</span>(outer, key_mode)</span>
+<span id="cb6-431"><a href="#cb6-431" aria-hidden="true" tabindex="-1"></a>      inner_label <span class="ot">&lt;-</span> <span class="fu">extract_roman_base</span>(inner, key_mode)</span>
+<span id="cb6-432"><a href="#cb6-432" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span> (<span class="fu">is.na</span>(outer_label) <span class="sc">|</span> <span class="fu">is.na</span>(inner_label)) <span class="fu">return</span>(<span class="st">&quot;NA/NA&quot;</span>)</span>
+<span id="cb6-433"><a href="#cb6-433" aria-hidden="true" tabindex="-1"></a>      outer_qual <span class="ot">&lt;-</span> <span class="fu">str_remove</span>(outer, <span class="fu">fixed</span>(outer_label))</span>
+<span id="cb6-434"><a href="#cb6-434" aria-hidden="true" tabindex="-1"></a>      inner_qual <span class="ot">&lt;-</span> <span class="fu">str_remove</span>(inner, <span class="fu">fixed</span>(inner_label))</span>
+<span id="cb6-435"><a href="#cb6-435" aria-hidden="true" tabindex="-1"></a>      outer_interval <span class="ot">&lt;-</span> <span class="fu">match</span>(outer_label, roman_labels) <span class="sc">-</span> <span class="dv">1</span></span>
+<span id="cb6-436"><a href="#cb6-436" aria-hidden="true" tabindex="-1"></a>      inner_interval <span class="ot">&lt;-</span> <span class="fu">match</span>(inner_label, roman_labels) <span class="sc">-</span> <span class="dv">1</span></span>
+<span id="cb6-437"><a href="#cb6-437" aria-hidden="true" tabindex="-1"></a>      outer_note <span class="ot">&lt;-</span> reverse_chromatic[(tonic_val <span class="sc">+</span> outer_interval) <span class="sc">%%</span> <span class="dv">12</span> <span class="sc">+</span> <span class="dv">1</span>]</span>
+<span id="cb6-438"><a href="#cb6-438" aria-hidden="true" tabindex="-1"></a>      inner_note <span class="ot">&lt;-</span> reverse_chromatic[(tonic_val <span class="sc">+</span> inner_interval) <span class="sc">%%</span> <span class="dv">12</span> <span class="sc">+</span> <span class="dv">1</span>]</span>
+<span id="cb6-439"><a href="#cb6-439" aria-hidden="true" tabindex="-1"></a>      <span class="fu">return</span>(<span class="fu">paste0</span>(outer_note, outer_qual, <span class="st">&quot;(&quot;</span>, inner_note, inner_qual, <span class="st">&quot;)&quot;</span>))</span>
+<span id="cb6-440"><a href="#cb6-440" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb6-441"><a href="#cb6-441" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-442"><a href="#cb6-442" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Regular chord</span></span>
+<span id="cb6-443"><a href="#cb6-443" aria-hidden="true" tabindex="-1"></a>    roman_label <span class="ot">&lt;-</span> <span class="fu">extract_roman_base</span>(rc, key_mode)</span>
+<span id="cb6-444"><a href="#cb6-444" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">is.na</span>(roman_label)) <span class="fu">return</span>(<span class="st">&quot;NA/NA&quot;</span>)</span>
+<span id="cb6-445"><a href="#cb6-445" aria-hidden="true" tabindex="-1"></a>    qual <span class="ot">&lt;-</span> <span class="fu">str_remove</span>(rc, <span class="fu">fixed</span>(roman_label))</span>
+<span id="cb6-446"><a href="#cb6-446" aria-hidden="true" tabindex="-1"></a>    interval <span class="ot">&lt;-</span> <span class="fu">match</span>(roman_label, roman_labels) <span class="sc">-</span> <span class="dv">1</span></span>
+<span id="cb6-447"><a href="#cb6-447" aria-hidden="true" tabindex="-1"></a>    note <span class="ot">&lt;-</span> reverse_chromatic[(tonic_val <span class="sc">+</span> interval) <span class="sc">%%</span> <span class="dv">12</span> <span class="sc">+</span> <span class="dv">1</span>]</span>
+<span id="cb6-448"><a href="#cb6-448" aria-hidden="true" tabindex="-1"></a>    <span class="fu">paste0</span>(note, qual)</span>
+<span id="cb6-449"><a href="#cb6-449" aria-hidden="true" tabindex="-1"></a>  })</span>
+<span id="cb6-450"><a href="#cb6-450" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-451"><a href="#cb6-451" aria-hidden="true" tabindex="-1"></a>  <span class="fu">paste</span>(real_chords, <span class="at">collapse =</span> <span class="st">&quot;, &quot;</span>)</span>
+<span id="cb6-452"><a href="#cb6-452" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb6-453"><a href="#cb6-453" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-454"><a href="#cb6-454" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">94</span>)</span>
+<span id="cb6-455"><a href="#cb6-455" aria-hidden="true" tabindex="-1"></a>starting_bars <span class="ot">&lt;-</span> bar_info <span class="sc">%&gt;%</span></span>
+<span id="cb6-456"><a href="#cb6-456" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(first_chord <span class="sc">==</span> <span class="st">&quot;I&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb6-457"><a href="#cb6-457" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(bar)</span>
+<span id="cb6-458"><a href="#cb6-458" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-459"><a href="#cb6-459" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">1</span>) {</span>
+<span id="cb6-460"><a href="#cb6-460" aria-hidden="true" tabindex="-1"></a>  start_bar <span class="ot">&lt;-</span> <span class="fu">sample</span>(starting_bars, <span class="dv">1</span>)</span>
+<span id="cb6-461"><a href="#cb6-461" aria-hidden="true" tabindex="-1"></a>  sequence <span class="ot">&lt;-</span> <span class="fu">c</span>(start_bar)</span>
+<span id="cb6-462"><a href="#cb6-462" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-463"><a href="#cb6-463" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (j <span class="cf">in</span> <span class="dv">2</span><span class="sc">:</span><span class="dv">8</span>) {</span>
+<span id="cb6-464"><a href="#cb6-464" aria-hidden="true" tabindex="-1"></a>    prev_bar <span class="ot">&lt;-</span> sequence[<span class="fu">length</span>(sequence)]</span>
+<span id="cb6-465"><a href="#cb6-465" aria-hidden="true" tabindex="-1"></a>    prev_last <span class="ot">&lt;-</span> bar_info <span class="sc">%&gt;%</span> <span class="fu">filter</span>(bar <span class="sc">==</span> prev_bar) <span class="sc">%&gt;%</span> <span class="fu">pull</span>(last_chord)</span>
+<span id="cb6-466"><a href="#cb6-466" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-467"><a href="#cb6-467" aria-hidden="true" tabindex="-1"></a>    options <span class="ot">&lt;-</span> transition_probs <span class="sc">%&gt;%</span></span>
+<span id="cb6-468"><a href="#cb6-468" aria-hidden="true" tabindex="-1"></a>      <span class="fu">filter</span>(last_chord_from <span class="sc">==</span> prev_last)</span>
+<span id="cb6-469"><a href="#cb6-469" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-470"><a href="#cb6-470" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">length</span>(sequence) <span class="sc">&gt;=</span> <span class="dv">2</span> <span class="sc">&amp;&amp;</span> sequence[<span class="fu">length</span>(sequence)] <span class="sc">==</span> sequence[<span class="fu">length</span>(sequence) <span class="sc">-</span> <span class="dv">1</span>]) {</span>
+<span id="cb6-471"><a href="#cb6-471" aria-hidden="true" tabindex="-1"></a>      options <span class="ot">&lt;-</span> options <span class="sc">%&gt;%</span> <span class="fu">filter</span>(bar_to <span class="sc">!=</span> prev_bar)</span>
+<span id="cb6-472"><a href="#cb6-472" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb6-473"><a href="#cb6-473" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-474"><a href="#cb6-474" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">nrow</span>(options) <span class="sc">==</span> <span class="dv">0</span>) <span class="cf">break</span></span>
+<span id="cb6-475"><a href="#cb6-475" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-476"><a href="#cb6-476" aria-hidden="true" tabindex="-1"></a>    next_bar <span class="ot">&lt;-</span> <span class="fu">sample</span>(options<span class="sc">$</span>bar_to, <span class="at">size =</span> <span class="dv">1</span>, <span class="at">prob =</span> options<span class="sc">$</span>prob)</span>
+<span id="cb6-477"><a href="#cb6-477" aria-hidden="true" tabindex="-1"></a>    sequence <span class="ot">&lt;-</span> <span class="fu">c</span>(sequence, next_bar)</span>
+<span id="cb6-478"><a href="#cb6-478" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb6-479"><a href="#cb6-479" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-480"><a href="#cb6-480" aria-hidden="true" tabindex="-1"></a>  roman_str <span class="ot">&lt;-</span> <span class="fu">paste</span>(<span class="fu">gsub</span>(<span class="st">&quot;,&quot;</span>, <span class="st">&quot;, &quot;</span>, sequence), <span class="at">collapse =</span> <span class="st">&quot; | &quot;</span>)</span>
+<span id="cb6-481"><a href="#cb6-481" aria-hidden="true" tabindex="-1"></a>  chord_str <span class="ot">&lt;-</span> <span class="fu">paste</span>(<span class="fu">map_chr</span>(sequence, <span class="sc">~</span> <span class="fu">convert_bar_to_chords</span>(.x, <span class="at">key =</span> <span class="st">&quot;C&quot;</span>)), <span class="at">collapse =</span> <span class="st">&quot; | &quot;</span>)</span>
+<span id="cb6-482"><a href="#cb6-482" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-483"><a href="#cb6-483" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">&quot;=== Sequence %02d ===</span><span class="sc">\n</span><span class="st">&quot;</span>, i))</span>
+<span id="cb6-484"><a href="#cb6-484" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">&quot;Roman Numerals:</span><span class="sc">\n</span><span class="st">&quot;</span>, roman_str, <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb6-485"><a href="#cb6-485" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">&quot;In Key of C:</span><span class="sc">\n</span><span class="st">&quot;</span>, chord_str, <span class="st">&quot;</span><span class="sc">\n\n</span><span class="st">&quot;</span>)</span>
+<span id="cb6-486"><a href="#cb6-486" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb6-487"><a href="#cb6-487" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb6-488"><a href="#cb6-488" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb6-489"><a href="#cb6-489" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-490"><a href="#cb6-490" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Final Thoughts... &lt;small&gt;for now&lt;/small&gt;</span></span>
+<span id="cb6-491"><a href="#cb6-491" aria-hidden="true" tabindex="-1"></a>This updated bigram Markov model represents a significant leap from the original prototype. This model has increased enough in complexity that it&#39;s ready to have its chord progressions played, patterns analyzed, and published for public usage on my website... later.</span>
 </code><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal><i class="bi"></i></button></pre></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

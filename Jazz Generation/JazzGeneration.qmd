@@ -211,11 +211,11 @@ get_next_chord_distribution <- function(chord, top_n = 10) {
 
 get_next_chord_distribution("V7")
 ```
-As shown above, a majority of the time it's resolving to some variant of the I chord (I6, Imaj7, I). This is a great sanity check for the model, and it (kinda) passed. There are still some weird options up here (V7 to 	#IV/♭V7?)
+As shown above, a majority of the time it's resolving to some variant of the I chord (I6, Imaj7, I). V -> I is the expected outcome, so this is a great sanity check for the model which it (kinda) passed. There are still some weird options up here (V7 to 	#IV/♭V7?). That will be addressed in a later update.
 
 #### Coverting Results Back to Standard Chords
 
-I'm almost done here, but there's one step left. Musicians don't play from chord progressions in Roman Numeral form (think back to the *Dinah* example), I only did that so the model would capture the chord function within the progression. So, I wrote code to convert the examples back into standard chords (in the key of C). Additionally, I added an extra feature in the results, and wrote code to test if the resulting chord progression exists in the dataset (i.e. is the model overfitted.) You can see the result for each sequence, where "Exists in dataset: Yes/No" is written.
+I'm almost done here, but there's one step left. Musicians don't play from chord progressions in Roman Numeral form (think back to the *Dinah* example), I only did that so the model would capture the chord function within the progression. I wrote code to convert the examples back into standard chords (in the key of C). Additionally, I added an extra feature in the results, and wrote code to test if the resulting chord progression exists in the dataset (i.e. is the model overfitted.) You can see the result for each sequence, where "Exists in dataset: Yes/No" is written.
 
 ```{r}
 extract_roman_base <- function(roman_string, key_mode = "major") {
@@ -299,7 +299,7 @@ for (i in 1:10) {
 }
 ```
 
-It's simple and imperfect, but it's functional. If you knew how many hours I sunk into models that didn't work, you'd understand why I'm so happy with this result. A great starting point! (Also, the model isn't overfitted re: each progression does *not* exist in the dataset.) 
+It's simple and imperfect, but it's functional. If you knew how many days I sunk into models that didn't work, you'd understand why I'm so happy with this result. A great starting point! (Also, the model isn't overfitted re: each progression does *not* exist in the dataset.) 
 
-*P.S. let's ignore the fact that the last chord progression literally starts with four measures of the "C" chord. Yikes. That'll get fixed later on.*
+*P.S. let's ignore the fact that the last chord progression starts with four bars of the "C" chord. Yikes. That'll get fixed later on.*
 

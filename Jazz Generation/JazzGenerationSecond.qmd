@@ -169,15 +169,14 @@ CPWK <- CPWK %>%
 ```
 
 #### Overview of Model Fixes for Increased Complexity  
-<br>
-Well, in the narrative for the first model, I said I would just focus on the positives. Now is the time to understand the negatives of my previous model, so you can understand the changes I made in the updated model.  
+Well, in my narrative for the first model, I said I would just focus on the positives. Now is the time to understand the negatives of my previous model, so you can understand the changes I made in the updated model.  
 
 1. **Multiple chords within bars**  
 
-**PROBLEM**: If you recall, each chord progression in the previous model allotted one chord per measure   
-(e.g. `Sequence 3`:  C | Dm7 | G7 | C7 | Fmaj7 | Bm7b5 | E7b9 | A7). This made sense for simplicity's sake, but that's not how jazz progressions work in reality; often times, there are multiple chord changes within a singular measure. So, I had to figure out a way to impliment that into my model.
+**PROBLEM**: If you recall, each chord progression in the previous model allotted one chord per bar   
+(e.g. `Sequence 3`:  C | Dm7 | G7 | C7 | Fmaj7 | Bm7b5 | E7b9 | A7). This made sense for simplicity's sake, but that's not how jazz progressions work in reality; often times, there are multiple chord changes within a singular bar. So, I had to figure out a way to impliment that into my model.
 
-**FIX**: I redesigned the model architecture around full measures (bars) rather than individual chords. Instead of treating each chord as an atomic unit, I treated each bar as a block of harmonic context - whether it contains one chord or several. The key insight was to condition transitions not from chord to chord, but from bar to bar, based on the relationship between the last chord of the previous bar and the first chord of the next.
+**FIX**: I redesigned the model architecture around full bars rather than individual chords. Instead of treating each chord as an atomic unit, I treated each bar as a block of harmonic context - whether it contains one chord or several. The key insight was to condition transitions not from chord to chord, but from bar to bar, based on the relationship between the last chord of the previous bar and the first chord of the next.
 
 The updated code has the following logic tunnel:
 
@@ -185,7 +184,7 @@ The updated code has the following logic tunnel:
 
 2. It searches the bar metadata for all bars that begin with that chord.
 
-3. From that filtered set, it selects one bar (using probabilistic frequencies) to serve as the first measure of the sequence.
+3. From that filtered set, it selects one bar (using probabilistic frequencies) to serve as the first bar of the sequence.
 
 4. It then extracts the last chord of that selected bar.
 
@@ -203,7 +202,7 @@ The result is a bar-level sequence, where each measure *can* contain multiple ch
 
 2. **Training the progression on data with the same chord quality**
 
-**PROBLEM**: Another issue that popped up in the previous model was some chords being flat-out weird. Here are some chord changes that the model suggested (in my own experimentation) which I found to be odd:  
+**PROBLEM**: Another issue that popped up in the previous model was some chords being flat-out weird. Here are some chord changes that the previous model suggested (in my own experimentation) which I found to be odd:  
 
  - #I/♭II7 → Im6 (Why is the #I resolving to a minor I)
  
@@ -211,7 +210,7 @@ The result is a bar-level sequence, where each measure *can* contain multiple ch
  
  - #IV/♭V07 → Im7/V (Same problem as the above chord change)
  
-In case you haven't noticed, the problem with these chord changes is that none of them make sense in the context of a major key (which all my progressions are based in.) What I realized is that the model was sampling from major *as well as* minor progressions, which throws off generated progressions in major keys. As you can see below, all three of these individual chord changes which I noted as "odd" come from minor progressions in the database.
+In case you haven't noticed, the problem with these chord changes is that none of them make sense in the context of a major key (which all my progressions are based in). What I realized is that the model was sampling from major *as well as* minor progressions, which throws off generated progressions in major keys. As you can see below, all three of these individual chord changes which I noted as "odd" come from minor progressions in the database.
 
 ```{r, echo=FALSE}
 selected_songs <- CPWK %>%
@@ -220,7 +219,7 @@ selected_songs <- CPWK %>%
 
 kable(selected_songs, caption = "Selected Songs with Unusual Chord Transitions")
 ```
-As you can see:  
+<br>
 
  - `#I/♭II7 → Im6` appears in “Cry Me A River” (a song in a minor key)  
  
@@ -232,7 +231,7 @@ As you can see:
 
  - If I set the starting chord to "I", the model will only train from major-mode chord progressions.
 
- - If I set it to "I-", the model will only use minor-mode chord progressions.
+ - If I set it to "Im", the model will only use minor-mode chord progressions.
 
 This ensures that the statistical patterns it learns are harmonically consistent with the type of progression being generated.  
 
@@ -479,4 +478,4 @@ for (i in 1:1) {
 ---
 
 #### Final Thoughts... <small>for now</small>
-This updated bigram Markov model represents a significant leap from the original prototype. This model has increased enough in complexity and reduced repetition that it's ready to have its chord progressions played, patterns analyzed, and usage published for use on my website... later.
+This updated bigram Markov model represents a significant leap from the original prototype. This model has increased enough in complexity that it's ready to have its chord progressions played, patterns analyzed, and published for public usage on my website... later.

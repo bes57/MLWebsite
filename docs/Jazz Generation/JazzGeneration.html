@@ -5218,11 +5218,11 @@ margin-bottom: 1rem;
 </table>
 </div>
 </div>
-<p>As shown above, a majority of the time it’s resolving to some variant of the I chord (I6, Imaj7, I). This is a great sanity check for the model, and it (kinda) passed. There are still some weird options up here (V7 to #IV/♭V7?)</p>
+<p>As shown above, a majority of the time it’s resolving to some variant of the I chord (I6, Imaj7, I). V -&gt; I is the expected outcome, so this is a great sanity check for the model which it (kinda) passed. There are still some weird options up here (V7 to #IV/♭V7?). That will be addressed in a later update.</p>
 </section>
 <section id="coverting-results-back-to-standard-chords" class="level4">
 <h4 class="anchored" data-anchor-id="coverting-results-back-to-standard-chords">Coverting Results Back to Standard Chords</h4>
-<p>I’m almost done here, but there’s one step left. Musicians don’t play from chord progressions in Roman Numeral form (think back to the <em>Dinah</em> example), I only did that so the model would capture the chord function within the progression. So, I wrote code to convert the examples back into standard chords (in the key of C). Additionally, I added an extra feature in the results, and wrote code to test if the resulting chord progression exists in the dataset (i.e. is the model overfitted.) You can see the result for each sequence, where “Exists in dataset: Yes/No” is written.</p>
+<p>I’m almost done here, but there’s one step left. Musicians don’t play from chord progressions in Roman Numeral form (think back to the <em>Dinah</em> example), I only did that so the model would capture the chord function within the progression. I wrote code to convert the examples back into standard chords (in the key of C). Additionally, I added an extra feature in the results, and wrote code to test if the resulting chord progression exists in the dataset (i.e. is the model overfitted.) You can see the result for each sequence, where “Exists in dataset: Yes/No” is written.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>extract_roman_base <span class="ot">&lt;-</span> <span class="cf">function</span>(roman_string, <span class="at">key_mode =</span> <span class="st">&quot;major&quot;</span>) {</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  roman_list <span class="ot">&lt;-</span> <span class="cf">if</span> (key_mode <span class="sc">==</span> <span class="st">&quot;minor&quot;</span>) minor_roman <span class="cf">else</span> major_roman</span>
@@ -5373,8 +5373,8 @@ margin-bottom: 1rem;
 <span id="cb6-147"><a href="#cb6-147" aria-hidden="true" tabindex="-1"></a>In C<span class="sc">:</span></span>
 <span id="cb6-148"><a href="#cb6-148" aria-hidden="true" tabindex="-1"></a> C <span class="sc">|</span> C <span class="sc">|</span> C <span class="sc">|</span> C <span class="sc">|</span> Am7 <span class="sc">|</span> Am7<span class="sc">/</span>G <span class="sc">|</span> F<span class="co">#/G | B7b9 </span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>It’s simple and imperfect, but it’s functional. If you knew how many hours I sunk into models that didn’t work, you’d understand why I’m so happy with this result. A great starting point! (Also, the model isn’t overfitted re: each progression does <em>not</em> exist in the dataset.)</p>
-<p><em>P.S. let’s ignore the fact that the last chord progression literally starts with four measures of the “C” chord. Yikes. That’ll get fixed later on.</em></p>
+<p>It’s simple and imperfect, but it’s functional. If you knew how many days I sunk into models that didn’t work, you’d understand why I’m so happy with this result. A great starting point! (Also, the model isn’t overfitted re: each progression does <em>not</em> exist in the dataset.)</p>
+<p><em>P.S. let’s ignore the fact that the last chord progression starts with four bars of the “C” chord. Yikes. That’ll get fixed later on.</em></p>
 
 
 <!-- -->
@@ -6063,11 +6063,11 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb7-221"><a href="#cb7-221" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb7-222"><a href="#cb7-222" aria-hidden="true" tabindex="-1"></a><span class="fu">get_next_chord_distribution</span>(<span class="st">&quot;V7&quot;</span>)</span>
 <span id="cb7-223"><a href="#cb7-223" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb7-224"><a href="#cb7-224" aria-hidden="true" tabindex="-1"></a>As shown above, a majority of the time it&#39;s resolving to some variant of the I chord (I6, Imaj7, I). This is a great sanity check for the model, and it (kinda) passed. There are still some weird options up here (V7 to   #IV/♭V7?)</span>
+<span id="cb7-224"><a href="#cb7-224" aria-hidden="true" tabindex="-1"></a>As shown above, a majority of the time it&#39;s resolving to some variant of the I chord (I6, Imaj7, I). V -&gt; I is the expected outcome, so this is a great sanity check for the model which it (kinda) passed. There are still some weird options up here (V7 to   #IV/♭V7?). That will be addressed in a later update.</span>
 <span id="cb7-225"><a href="#cb7-225" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb7-226"><a href="#cb7-226" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Coverting Results Back to Standard Chords</span></span>
 <span id="cb7-227"><a href="#cb7-227" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-228"><a href="#cb7-228" aria-hidden="true" tabindex="-1"></a>I&#39;m almost done here, but there&#39;s one step left. Musicians don&#39;t play from chord progressions in Roman Numeral form (think back to the *Dinah* example), I only did that so the model would capture the chord function within the progression. So, I wrote code to convert the examples back into standard chords (in the key of C). Additionally, I added an extra feature in the results, and wrote code to test if the resulting chord progression exists in the dataset (i.e. is the model overfitted.) You can see the result for each sequence, where &quot;Exists in dataset: Yes/No&quot; is written.</span>
+<span id="cb7-228"><a href="#cb7-228" aria-hidden="true" tabindex="-1"></a>I&#39;m almost done here, but there&#39;s one step left. Musicians don&#39;t play from chord progressions in Roman Numeral form (think back to the *Dinah* example), I only did that so the model would capture the chord function within the progression. I wrote code to convert the examples back into standard chords (in the key of C). Additionally, I added an extra feature in the results, and wrote code to test if the resulting chord progression exists in the dataset (i.e. is the model overfitted.) You can see the result for each sequence, where &quot;Exists in dataset: Yes/No&quot; is written.</span>
 <span id="cb7-229"><a href="#cb7-229" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb7-232"><a href="#cb7-232" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
 <span id="cb7-233"><a href="#cb7-233" aria-hidden="true" tabindex="-1"></a>extract_roman_base <span class="ot">&lt;-</span> <span class="cf">function</span>(roman_string, <span class="at">key_mode =</span> <span class="st">&quot;major&quot;</span>) {</span>
@@ -6151,9 +6151,9 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb7-311"><a href="#cb7-311" aria-hidden="true" tabindex="-1"></a>}</span>
 <span id="cb7-312"><a href="#cb7-312" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb7-313"><a href="#cb7-313" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-314"><a href="#cb7-314" aria-hidden="true" tabindex="-1"></a>It&#39;s simple and imperfect, but it&#39;s functional. If you knew how many hours I sunk into models that didn&#39;t work, you&#39;d understand why I&#39;m so happy with this result. A great starting point! (Also, the model isn&#39;t overfitted re: each progression does *not* exist in the dataset.) </span>
+<span id="cb7-314"><a href="#cb7-314" aria-hidden="true" tabindex="-1"></a>It&#39;s simple and imperfect, but it&#39;s functional. If you knew how many days I sunk into models that didn&#39;t work, you&#39;d understand why I&#39;m so happy with this result. A great starting point! (Also, the model isn&#39;t overfitted re: each progression does *not* exist in the dataset.) </span>
 <span id="cb7-315"><a href="#cb7-315" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-316"><a href="#cb7-316" aria-hidden="true" tabindex="-1"></a>*P.S. let&#39;s ignore the fact that the last chord progression literally starts with four measures of the &quot;C&quot; chord. Yikes. That&#39;ll get fixed later on.*</span>
+<span id="cb7-316"><a href="#cb7-316" aria-hidden="true" tabindex="-1"></a>*P.S. let&#39;s ignore the fact that the last chord progression starts with four bars of the &quot;C&quot; chord. Yikes. That&#39;ll get fixed later on.*</span>
 </code><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal><i class="bi"></i></button></pre></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

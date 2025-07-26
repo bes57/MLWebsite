@@ -23,7 +23,7 @@ knitr:
 
 ---
 ## Introduction
-Surprisingly enough, one of the most challenging parts of this project was to create a dataset for the model. There is no publicly available dataset with jazz chord progressions, at least one that was correctly formatted for an LLM. However, I was able to find a Github repository with almost 1,000 progressions. I took it upon myself to download the JSON file, filter the progressions, and mutate the dataset to be functional for the model.  
+Surprisingly enough, one of the most challenging parts of this project was to create a dataset for the model. There is no easily accesible dataset with jazz chord progressions, at least one that was correctly formatted for an LLM. I was able to find a Github repository with almost 1,000 progressions. I took it upon myself to download the JSON file, filter the progressions, and mutate the dataset to be functional for the model.  
 
 The Github repository can be found [here](https://github.com/mikeoliphant/JazzStandards).
 
@@ -56,7 +56,7 @@ library(knitr)
 #### Dataset Filtration
 
 Firstly, to ensure consistency in the training data, I filtered for progressions in 4/4 time and exactly 8 bars. This standardization helps the jazz progression LLM learn from structurally comparable examples.  
-For example, the bar "|Am, D7|" implies a different rhythm in 3/4 time as opposed to 4/4. This showcases the importance of normalizing time signature. As for the 8 bars, this length is a common phrase structure in jazz, especially within A sections. Limiting to 8-bar segments ensures the model learns patterns that fit within a musically coherent and widely used harmonic unit, improving the relevance and musicality of generated progressions.  
+For example, the bar $|\ \text{Am}\ , \text{D7}\ |$ implies a different rhythm in 3/4 time as opposed to 4/4. This showcases the importance of normalizing time signature. As for the 8 bars, this length is a common phrase structure in jazz, especially within A sections. Limiting to 8-bar segments ensures the model learns patterns that fit within a musically coherent and widely used harmonic unit, improving the relevance and musicality of generated progressions.  
 
 Lastly, as some songs were double-counted in the repository, I ensured each song only appeared once in the dataset.
 
@@ -102,7 +102,7 @@ df_unique_titles <- df %>%
 #write.csv(df_unique_titles, "unique_titles_only.csv", row.names = FALSE)
 ```
 #### Dataset Mutation
-Then came the most challenging part. The most important step in preparing this dataset for the LLM was converting the progression from standard chord symbols into Roman numeral notation. While chords like "Cmaj7" or "Am7" carry harmonic meaning, their *function* within the progression is key-dependent. For example, Cmaj7 serves as the "I chord" in the key of C, the "home base" chord. However, in the key of F, Cmaj7 serves as the "V chord", which practically is begging to be resolved back to the "I chord" (in this case F.) This distinction is critical for the LLM because it allows the model to focus on harmonic roles rather than absolute pitches.  
+Then came the most challenging part. The most important step in preparing this dataset for the LLM was converting the progression from standard chord symbols into Roman numeral notation. While chords like "Cmaj7" or "Am7" carry harmonic meaning, their *function* within the progression is key-dependent. For example, Cmaj7 serves as the "I chord" in the key of C, the "home base" chord. It provides resolution and stability. However, in the key of F, Cmaj7 serves as the "V chord", which practically is begging to be resolved back to the "I chord" (in this case F.) In this case, it is the antithesis of resolution, providing tension instead. This distinction is critical for the LLM because it allows the model to focus on harmonic roles rather than absolute pitches.  
 
 I built a set of helper functions and mappings to identify enharmonic equivalents and properly assign chords to their relative Roman numerals based on key context. This included support for complex chord types like slash chords (e.g., C/E) and substitutions (e.g., Cmaj7(Am7)), which are common in jazz but easy to mishandle in automated systems.
 
@@ -232,7 +232,7 @@ CPWK <- CPWK %>%
 
 #### Result
 
-And... voila! Below, you can see the *before vs. after* of a few example chord progressions, transformed from raw chord symbols into key-normalized Roman numeral notation. Scroll from left to right to see the full chart.
+And... voila! Below, you can see the *before vs. after* of a few example chord progressions, transformed from raw chord symbols into key-normalized Roman numeral notation. Scroll from left to right to see the full progressions.
 
 
 ```{r, results='asis', echo=FALSE, message=FALSE, warning=FALSE}
@@ -246,4 +246,5 @@ cat('<div style="overflow-x: auto; font-size: 80%; padding: 8px; border: 1px sol
 kable(cpwk_summary, caption = "Sample of 10 Jazz Standards: Original vs Roman Numeral Progressions")
 cat('</div>')
 ```
-
+<br>
+Looks good to go!
