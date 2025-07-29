@@ -1,247 +1,66 @@
 ---
-title: "Interactive Jazz LLM"
+title: "Published Model"
 author: "Benjamin Sherman"
 format:
   html:
+    embed-resources: true
+    toc: false
     code-fold: false
     code-summary: "Show code"
-    code-tools: true 
-    embed-resources: true
-
+    code-tools: true
+    includes:
+      after_body: jazz-widget.html  # optional, but you can leave it
 knitr:
   opts_chunk:
     collapse: true
     message: true
     warning: false
     error: false
-    comment: ""      # don't show ## with printed output
+    comment: ""
     dpi: 300
     fig-width: 6.5
     fig-height: 4.0
     R.options:
       digits: 3
-
 ---
 
-#### *View below code to see the very long, very complicated process for loading the dataset*
-```{r}
-#| code-fold: TRUE
-CPWK <- read.csv("/Users/benny_es1/Downloads/MLWebsite/Jazz Generation/CPWK3.csv")
-```
+## Try It For Yourself
 
-#### *View below code to see library loading*
-```{r}
-#| label: library
-#| code-fold: TRUE
-#install.packages("remotes")
-#install.packages("ggraph")
-#install.packages("visNetwork")
-library(visNetwork)
-library(igraph)
-library(ggraph)
-library(remotes)
-library(dplyr)
-library(tibble)
-library(rlang)
-library(ggplot2)
-library(jsonlite)
-library(purrr)
-library(tidyr)
-library(stringr)
-library(httr)
-library(readr)
-library(kgrams)
-library(knitr)
-library(shiny)
-```
+After spending more time than I'd like to admit dealing with `R Shiny`, the finalized model is available for public use below!
 
-#### *View below code to see function loading*
-
-```{r}
-#| code-fold: TRUE
-extract_roman_base <- function(roman_string, key_mode = "major") {
-  roman_list <- if (key_mode == "minor") minor_roman else major_roman
-  roman_list <- roman_list[order(nchar(roman_list), decreasing = TRUE)]
-  match <- roman_list[str_detect(roman_string, fixed(roman_list))]
-  if (length(match) == 0) return(NA)
-  match[[1]]
-}
-
-convert_roman_prog_to_chords <- function(roman_prog, key = "C") {
-  bars <- str_split(roman_prog, "\\|")[[1]]
-  tonic_val <- chromatic_scale[[extract_root(key)]]
-  is_minor <- is_minor_key(key)
-  key_mode <- if (is_minor) "minor" else "major"
-  roman_labels <- if (is_minor) minor_roman else major_roman
-}
-  
-chromatic_scale <- c(
-  "C"=0, "C#"=1, "Db"=1,
-  "D"=2, "D#"=3, "Eb"=3,
-  "E"=4, "F"=5, "F#"=6, "Gb"=6,
-  "G"=7, "G#"=8, "Ab"=8,
-  "A"=9, "A#"=10, "Bb"=10,
-  "B"=11
-)
-
-reverse_chromatic <- c("C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B")
-
-major_roman <- c("I", "#I/♭II", "II", "#II/♭III", "III", "IV", "#IV/♭V", "V", "#V/♭VI", "VI", "#VI/♭VII", "VII")
-minor_roman <- c("i", "#i/♭II", "ii°", "#ii°/♭III", "III", "iv", "#iv/♭V", "V", "#V/♭VI", "VI", "#VI/♭VII", "vii°")
-
-is_minor_key <- function(key) {
-  str_detect(key, "m") & !str_detect(key, "maj")
-}
-
-extract_root <- function(chord) {
-  matches <- str_match(chord, "^([A-G][b#]?)")
-  matches[,2]
-}
-
-convert_chord_to_roman <- function(chord, key) {
-  chord <- str_trim(chord)
-  if (is.na(chord) || chord == "") return("")
-
-  key_root <- extract_root(key)
-  if (is.na(key_root) || !(key_root %in% names(chromatic_scale))) return(chord)
-
-  tonic_val <- chromatic_scale[[key_root]]
-  minor_mode <- is_minor_key(key)
-  roman_labels <- if (minor_mode) minor_roman else major_roman
-
-  romanize <- function(note, quality = "") {
-    if (!(note %in% names(chromatic_scale))) return(paste0(note, quality))
-    interval <- (chromatic_scale[[note]] - tonic_val) %% 12
-    paste0(roman_labels[interval + 1], quality)
+<style>
+  .jazz-button {
+    font-size: 20px;
+    font-weight: 600;
+    padding: 16px 32px;
+    background-color: #E78FA5;
+    color: white;
+    text-decoration: none;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    transition: background-color 0.3s ease;
+    display: inline-block;
+    position: relative;
   }
 
-  # 1. Slash chords (e.g., C/G)
-  if (str_detect(chord, "/")) {
-    parts <- str_split(chord, "/")[[1]]
-    if (length(parts) != 2) return(chord)
-    main <- str_trim(parts[1])
-    bass <- str_trim(parts[2])
-
-    main_root <- extract_root(main)
-    bass_root <- extract_root(bass)
-
-    if (is.na(main_root) || is.na(bass_root)) return(chord)
-
-    main_qual <- str_remove(main, main_root)
-    main_roman <- romanize(main_root, main_qual)
-    bass_roman <- romanize(bass_root)
-
-    return(paste0(main_roman, "/", bass_roman))
+  .jazz-button:hover {
+    background-color: #F8C8DC;
   }
 
-  # 2. Substitution chords (e.g., Cmaj7(Am7))
-  if (str_detect(chord, "\\(")) {
-    matches <- str_match(chord, "^([A-G][b#]?[^\\(]*)\\(([^\\)]+)\\)")
-    if (any(is.na(matches))) return(chord)
-
-    outer <- str_trim(matches[, 2])
-    inner <- str_trim(matches[, 3])
-
-    outer_root <- extract_root(outer)
-    inner_root <- extract_root(inner)
-
-    if (is.na(outer_root) || is.na(inner_root)) return(chord)
-
-    outer_qual <- str_remove(outer, outer_root)
-    inner_qual <- str_remove(inner, inner_root)
-
-    outer_roman <- romanize(outer_root, outer_qual)
-    inner_roman <- romanize(inner_root, inner_qual)
-
-    return(paste0(outer_roman, "(", inner_roman, ")"))
+  .note {
+    display: inline-block;
+    margin-left: 12px;
+    font-family: serif;
+    transition: transform 0.4s ease;
   }
 
-  # 3. Regular chords
-  root <- extract_root(chord)
-  if (is.na(root)) return(chord)
-
-  qual <- str_remove(chord, root)
-  romanize(root, qual)
-}
-
-tokenize_bars <- function(prog) {
-  bars <- str_split(prog, "\\|")[[1]]
-  bars <- str_trim(bars)
-  bars[bars != ""]
-}
-
-get_mode_from_chord <- function(chord) {
-  if (chord == "Im") return("minor")
-  if (chord == "I") return("major")
-  return(NA)
-}
-```
-
-#### *View below code to see model loading*
-
-```{r}
-#| code-fold: TRUE
-starting_chord <- "I"
-mode_to_use <- get_mode_from_chord(starting_chord)
-
-bar_info <- CPWK %>%
-  filter(Mode == mode_to_use) %>%
-  pull(RomanNumeralProgression) %>%
-  map(tokenize_bars) %>%
-  unlist() %>%
-  unique() %>%
-  tibble(bar = .) %>%
-  mutate(
-    chords = map(bar, ~ str_split(.x, ",")[[1]] %>% str_trim()),
-    first_chord = map_chr(chords, ~ .x[1]),
-    last_chord = map_chr(chords, ~ .x[length(.x)])
-  )
-
-bar_sequences <- CPWK %>%
-  filter(Mode == mode_to_use) %>%
-  pull(RomanNumeralProgression) %>%
-  map(tokenize_bars)
-
-bar_transitions <- map(bar_sequences, function(seq) {
-  if (length(seq) < 2) return(NULL)
-  tibble(bar_from = head(seq, -1), bar_to = tail(seq, -1))
-}) %>% bind_rows()
-
-bar_transitions <- bar_transitions %>%
-  left_join(bar_info %>% select(bar_from = bar, last_chord_from = last_chord), by = "bar_from") %>%
-  left_join(bar_info %>% select(bar_to = bar, first_chord_to = first_chord), by = "bar_to") %>%
-  filter(!is.na(last_chord_from), !is.na(first_chord_to))
-
-transition_counts <- bar_transitions %>%
-  count(last_chord_from, first_chord_to, bar_to, name = "n")
-
-transition_probs <- transition_counts %>%
-  group_by(last_chord_from) %>%
-  mutate(prob = n / sum(n)) %>%
-  ungroup()
-
-# ==== Bar Sequence Generator ====
-generate_bar_sequence <- function(num_bars = 8) {
-  start_bar <- sample(bar_info$bar, 1)
-  sequence <- c(start_bar)
-
-  for (i in 2:num_bars) {
-    prev_bar <- sequence[length(sequence)]
-    prev_last <- bar_info %>% filter(bar == prev_bar) %>% pull(last_chord)
-
-    options <- transition_probs %>% filter(last_chord_from == prev_last)
-
-    if (length(sequence) >= 2 && sequence[length(sequence)] == sequence[length(sequence) - 1]) {
-      options <- options %>% filter(bar_to != prev_bar)
-    }
-
-    if (nrow(options) == 0) break
-
-    next_bar <- sample(options$bar_to, size = 1, prob = options$prob)
-    sequence <- c(sequence, next_bar)
+  .jazz-button:hover .note {
+    transform: rotate(20deg) scale(1.15);
   }
+</style>
 
-  return(sequence)
-}
-```
-
+<div style="text-align: center; margin: 40px 0;">
+  <a href="https://bes57.shinyapps.io/jazzshiny/" target="_blank" class="jazz-button">
+    Launch the Jazz Progression Generator<span class="note">♩</span>
+  </a>
+</div>

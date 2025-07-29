@@ -41,7 +41,9 @@ website:
             text: Bigram Markov Model
           - href: Jazz Generation/JazzGenerationSecond.qmd
             text: Bigram Markov Model 2.0
-        
+          - href: Jazz Generation/JazzGenerationExperiment.qmd
+            text: |
+              Published Model<br><em></em>
         
 
 
