@@ -43,7 +43,7 @@ website:
             text: Bigram Markov Model 2.0
           - href: Jazz Generation/JazzGenerationExperiment.qmd
             text: |
-              Published Model<br><em></em>
+              Published Model<br><em>(with played examples)</em>
         
 
 
