@@ -4878,7 +4878,7 @@ margin-bottom: 1rem;
   </li>  
         <li>
     <a class="dropdown-item" href="../Jazz Generation/JazzGenerationExperiment.html">
- <span class="dropdown-text">Published Model<br><em></em></span></a>
+ <span class="dropdown-text">Published Model<br><em>(with played examples)</em></span></a>
   </li>  
     </ul>
   </li>
@@ -5156,7 +5156,7 @@ margin-bottom: 1rem;
 <li><p>#V/♭VI7 → #VI/♭VIImaj7 (Neither #V or #VI are in a major key)</p></li>
 <li><p>#IV/♭V07 → Im7/V (Same problem as the above chord change)</p></li>
 </ul>
-<p>In case you haven’t noticed, the problem with these chord changes is that none of them make sense in the context of a major key (which all my progressions are based in). What I realized is that the model was sampling from major <em>as well as</em> minor progressions, which throws off generated progressions in major keys. As you can see below, all three of these individual chord changes which I noted as “odd” come from minor progressions in the database.</p>
+<p>In case you haven’t noticed, the problem with these chord changes is that none of them make sense in the context of a major key (which all my progressions are based in). What I realized is that the model was sampling from major <em>as well as</em> minor progressions, which throws off generated progressions. As you can see below, all three of these individual chord changes which I noted as “odd” come from minor progressions in the database.</p>
 <div class="cell">
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
@@ -5207,13 +5207,13 @@ margin-bottom: 1rem;
 <p><strong>FIX</strong>: I updated the model to only train on progressions that match the mode (major or minor) of the starting chord. That means:</p>
 <ul>
 <li><p>If I set the starting chord to “I”, the model will only train from major-mode chord progressions.</p></li>
-<li><p>If I set it to “Im”, the model will only use minor-mode chord progressions.</p></li>
+<li><p>If I set it to “Im”, the model will only train from minor-mode chord progressions.</p></li>
 </ul>
 <p>This ensures that the statistical patterns it learns are harmonically consistent with the type of progression being generated.</p>
 <ol start="3" type="1">
 <li><strong>Eliminating chord repitition</strong></li>
 </ol>
-<p><strong>PROBLEM</strong>: Of the many chord changes that can occur in jazz, one of the most common is “resting” on a chord (i.e. repeating the same chord). This typically only occurs for two or three bars, but my model doesn’t know that. Because of the frequency with which “resting” occurs, my model often generates the same chord repeatedly. For example, here are some laughable chord progressions my previous model generated:</p>
+<p><strong>PROBLEM</strong>: Of the many chord changes that can occur in jazz, one of the most common is “resting” on a chord (i.e. repeating the same chord). This typically only occurs for two or three bars, but my model doesn’t know that. Because of the frequency with which “resting” occurs, my model often generates the same chord repeatedly. For example, here are some laughable chord progressions that my previous model generated:</p>
 <ul>
 <li><p><code>C | C | C | C | C | C | Am7 | Dm7</code></p></li>
 <li><p><code>C | C | C | C | G7 | C07 | Cmaj7 | Cmaj7</code></p></li>
@@ -5349,45 +5349,45 @@ margin-bottom: 1rem;
 <span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>}</span>
 <span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a><span class="sc">==</span><span class="er">=</span> Sequence <span class="dv">01</span> <span class="sc">==</span><span class="er">=</span></span>
 <span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>Roman Numerals<span class="sc">:</span></span>
-<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a> I, I7<span class="sc">/</span><span class="co">#VI/♭VII | IV6/VI, IVm6/#V/♭VI | I/V | I | I7, VII7, #VI/♭VII7, VI7 | IIm7, V7 | IIm7, V7 | I6, VIm7 </span></span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a> I, IIm7, <span class="co">#II/♭III0, I/III | I, IIm7, #II/♭III0, I/III | I/III, #II/♭IIIm7, IIm7, V7 | Vm7 | I7 | IVmaj7, #VI/♭VII7 | #II/♭IIImaj7, V7 | IIm7, V7 </span></span>
 <span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a><span class="er">===</span> Sequence <span class="dv">02</span> <span class="sc">==</span><span class="er">=</span></span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a><span class="sc">==</span><span class="er">=</span> Sequence <span class="dv">02</span> <span class="sc">==</span><span class="er">=</span></span>
 <span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>Roman Numerals<span class="sc">:</span></span>
-<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a> I, I7<span class="sc">/</span>III <span class="sc">|</span> IV7<span class="co">#5, III7b13 | VIm7, I7/V | IVm6, V7b13 | Im7, Im7/#VI/♭VII | #V/♭VI7, V7 | I6, VIm7 | IIm7, V7 </span></span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a> I, <span class="co">#I/♭II07 | IIm7 | V7 | I6 | IV6 | IV6 | I6/III, I6 | IIm7, V7 </span></span>
 <span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a><span class="sc">==</span><span class="er">=</span> Sequence <span class="dv">03</span> <span class="sc">==</span><span class="er">=</span></span>
 <span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a>Roman Numerals<span class="sc">:</span></span>
-<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a> I, Iaug <span class="sc">|</span> I6, Imaj7 <span class="sc">|</span> IVm7 <span class="sc">|</span> Imaj7<span class="sc">/</span>V, IIm7, V7 <span class="sc">|</span> Imaj7, I7 <span class="sc">|</span> IVmaj7, IVm7 <span class="sc">|</span> I7, <span class="co">#VI/♭VII7 | I6 </span></span>
+<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a> I, <span class="co">#I/♭II07 | IIm7, V7 | #IV/♭V7 | Im7/IV, IV7 | IIIm7, VI7b9 | IIm7, V7 | IIIm7, VI7 | VI7 </span></span>
 <span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-41"><a href="#cb4-41" aria-hidden="true" tabindex="-1"></a><span class="sc">==</span><span class="er">=</span> Sequence <span class="dv">04</span> <span class="sc">==</span><span class="er">=</span></span>
 <span id="cb4-42"><a href="#cb4-42" aria-hidden="true" tabindex="-1"></a>Roman Numerals<span class="sc">:</span></span>
-<span id="cb4-43"><a href="#cb4-43" aria-hidden="true" tabindex="-1"></a> I, V7 <span class="sc">|</span> Imaj7, I7 <span class="sc">|</span> IVmaj7, <span class="co">#VI/♭VII7 | IIIm7, #II/♭IIIm7 | IIm7, V7 | I6, I7/III | IV6, IVm6 | I </span></span>
+<span id="cb4-43"><a href="#cb4-43" aria-hidden="true" tabindex="-1"></a> I <span class="sc">|</span> I <span class="sc">|</span> III7 <span class="sc">|</span> VIm7, II7 <span class="sc">|</span> IIm7, V7 <span class="sc">|</span> Imaj7 <span class="sc">|</span> Vm7, I7 <span class="sc">|</span> IV6, <span class="co">#VI/♭VII7 </span></span>
 <span id="cb4-44"><a href="#cb4-44" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-45"><a href="#cb4-45" aria-hidden="true" tabindex="-1"></a><span class="sc">==</span><span class="er">=</span> Sequence <span class="dv">05</span> <span class="sc">==</span><span class="er">=</span></span>
 <span id="cb4-46"><a href="#cb4-46" aria-hidden="true" tabindex="-1"></a>Roman Numerals<span class="sc">:</span></span>
-<span id="cb4-47"><a href="#cb4-47" aria-hidden="true" tabindex="-1"></a> I, Imaj7 <span class="sc">|</span> IV7<span class="co">#11 | V7, #V/♭VI7 | #I/♭IImaj7, III7 | III7 | #II/♭III7 | #V/♭VImaj7, VII7 | IIImaj7 </span></span>
+<span id="cb4-47"><a href="#cb4-47" aria-hidden="true" tabindex="-1"></a> I, Iaug <span class="sc">|</span> I6, Imaj7 <span class="sc">|</span> VIIm7b5, III7b9 <span class="sc">|</span> VI7 <span class="sc">|</span> II7 <span class="sc">|</span> IIm7, V7 <span class="sc">|</span> I6, V7 <span class="sc">|</span> I6 </span>
 <span id="cb4-48"><a href="#cb4-48" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-49"><a href="#cb4-49" aria-hidden="true" tabindex="-1"></a><span class="sc">==</span><span class="er">=</span> Sequence <span class="dv">06</span> <span class="sc">==</span><span class="er">=</span></span>
 <span id="cb4-50"><a href="#cb4-50" aria-hidden="true" tabindex="-1"></a>Roman Numerals<span class="sc">:</span></span>
-<span id="cb4-51"><a href="#cb4-51" aria-hidden="true" tabindex="-1"></a> I, VIm7 <span class="sc">|</span> IIm7, V7sus <span class="sc">|</span> V7sus <span class="sc">|</span> Imaj7, V7sus <span class="sc">|</span> V7sus <span class="sc">|</span> I07 </span>
+<span id="cb4-51"><a href="#cb4-51" aria-hidden="true" tabindex="-1"></a> I, IIm7, <span class="co">#II/♭III0, I/III | I/III, #II/♭IIIm7, IIm7, V7 | V7 | I, V7 | I6, #I/♭II0, V7/II, V7 | Im7(IVm7) | #V/♭VI7(II7), V7(#I/♭IImaj7) | Imaj7 </span></span>
 <span id="cb4-52"><a href="#cb4-52" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-53"><a href="#cb4-53" aria-hidden="true" tabindex="-1"></a><span class="sc">==</span><span class="er">=</span> Sequence <span class="dv">07</span> <span class="sc">==</span><span class="er">=</span></span>
 <span id="cb4-54"><a href="#cb4-54" aria-hidden="true" tabindex="-1"></a>Roman Numerals<span class="sc">:</span></span>
-<span id="cb4-55"><a href="#cb4-55" aria-hidden="true" tabindex="-1"></a> I, VIm7 <span class="sc">|</span> IIm7, V7<span class="co">#9 | Imaj7, IVmaj7 | IIIm7/V, VIm7, VII7 | IIImaj7 | IIImaj7 </span></span>
+<span id="cb4-55"><a href="#cb4-55" aria-hidden="true" tabindex="-1"></a> I, I7<span class="sc">/</span><span class="co">#VI/♭VII | IV6/VI, IVm6/#V/♭VI | I/V | V7 | I6, V7 | IIIm7, VI7 | VI7 | II7 </span></span>
 <span id="cb4-56"><a href="#cb4-56" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-57"><a href="#cb4-57" aria-hidden="true" tabindex="-1"></a><span class="sc">==</span><span class="er">=</span> Sequence <span class="dv">08</span> <span class="sc">==</span><span class="er">=</span></span>
+<span id="cb4-57"><a href="#cb4-57" aria-hidden="true" tabindex="-1"></a><span class="er">===</span> Sequence <span class="dv">08</span> <span class="sc">==</span><span class="er">=</span></span>
 <span id="cb4-58"><a href="#cb4-58" aria-hidden="true" tabindex="-1"></a>Roman Numerals<span class="sc">:</span></span>
-<span id="cb4-59"><a href="#cb4-59" aria-hidden="true" tabindex="-1"></a> I, VIm7 <span class="sc">|</span> II7 <span class="sc">|</span> V7 <span class="sc">|</span> IIm7, V7 <span class="sc">|</span> Imaj7, VI7 <span class="sc">|</span> <span class="co">#VI/♭VIImaj7(IIm7), VII7, #VI/♭VII | IV | I7 </span></span>
+<span id="cb4-59"><a href="#cb4-59" aria-hidden="true" tabindex="-1"></a> I, Imaj7 <span class="sc">|</span> Imaj7 <span class="sc">|</span> VIIm7b5 <span class="sc">|</span> III7b9 <span class="sc">|</span> VI7 <span class="sc">|</span> IIm7, V7 <span class="sc">|</span> I, I7<span class="sc">/</span>III <span class="sc">|</span> IV7<span class="co">#5, III7b13 </span></span>
 <span id="cb4-60"><a href="#cb4-60" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-61"><a href="#cb4-61" aria-hidden="true" tabindex="-1"></a><span class="er">===</span> Sequence <span class="dv">09</span> <span class="sc">==</span><span class="er">=</span></span>
+<span id="cb4-61"><a href="#cb4-61" aria-hidden="true" tabindex="-1"></a><span class="sc">==</span><span class="er">=</span> Sequence <span class="dv">09</span> <span class="sc">==</span><span class="er">=</span></span>
 <span id="cb4-62"><a href="#cb4-62" aria-hidden="true" tabindex="-1"></a>Roman Numerals<span class="sc">:</span></span>
-<span id="cb4-63"><a href="#cb4-63" aria-hidden="true" tabindex="-1"></a> I, I7<span class="sc">/</span>III <span class="sc">|</span> IV, <span class="co">#IV/♭V07 | Imaj7/V, VI7 | IIm7 | V7 | I6 | II7 | IIm7, V7 </span></span>
+<span id="cb4-63"><a href="#cb4-63" aria-hidden="true" tabindex="-1"></a> I, VIm7 <span class="sc">|</span> IIm7, V7 <span class="sc">|</span> I, VIm7 <span class="sc">|</span> IIm7, IVm7, <span class="co">#VI/♭VII7 | VIm7, VIm7/V | #IV/♭Vm7b5, IV7 | IIIm7, VI7b9 | IIm7, V7 </span></span>
 <span id="cb4-64"><a href="#cb4-64" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-65"><a href="#cb4-65" aria-hidden="true" tabindex="-1"></a><span class="sc">==</span><span class="er">=</span> Sequence <span class="dv">10</span> <span class="sc">==</span><span class="er">=</span></span>
 <span id="cb4-66"><a href="#cb4-66" aria-hidden="true" tabindex="-1"></a>Roman Numerals<span class="sc">:</span></span>
-<span id="cb4-67"><a href="#cb4-67" aria-hidden="true" tabindex="-1"></a> I, I7<span class="sc">/</span>III <span class="sc">|</span> IV, <span class="co">#IV/♭V07 | I/V, V7 | I6 | I6 | VI7 | IIm7, V7 | I6, #VI/♭VII7 </span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb4-67"><a href="#cb4-67" aria-hidden="true" tabindex="-1"></a> I, VIm7 <span class="sc">|</span> IIm7, V7 <span class="sc">|</span> Imaj7, VIm7 <span class="sc">|</span> IIIm7, VIm7 <span class="sc">|</span> IIm7, V7 <span class="sc">|</span> Imaj7 <span class="sc">|</span> Imaj7 <span class="sc">|</span> IIIm7 </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>With the previous model, I was just happy that it was semi-functional. Now, these are some serious-looking, complex, functional chord progressions! I don’t need to go through gobs of music theory now to prove that - <em>I’ll showcase some generated chord progressions and examples of correct music theory in a later update</em> - but this is proof of a working, complex, jazz chord progression generator.</p>
+<p>With the previous model, I was just happy that it was semi-functional. Now, these are some serious-looking, complex, functional chord progressions! I don’t need to go through gobs of music theory now to prove that - <em>I’ll showcase some generated chord progressions in a later update</em> - but this is proof of a working jazz chord progression generator.</p>
 </section>
 <section id="converting-back-to-standard-chords" class="level4">
 <h4 class="anchored" data-anchor-id="converting-back-to-standard-chords">Converting Back to Standard Chords</h4>
@@ -6181,7 +6181,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb6-214"><a href="#cb6-214" aria-hidden="true" tabindex="-1"></a> </span>
 <span id="cb6-215"><a href="#cb6-215" aria-hidden="true" tabindex="-1"></a><span class="ss"> - </span>#IV/♭V07 → Im7/V (Same problem as the above chord change)</span>
 <span id="cb6-216"><a href="#cb6-216" aria-hidden="true" tabindex="-1"></a> </span>
-<span id="cb6-217"><a href="#cb6-217" aria-hidden="true" tabindex="-1"></a>In case you haven&#39;t noticed, the problem with these chord changes is that none of them make sense in the context of a major key (which all my progressions are based in). What I realized is that the model was sampling from major *as well as* minor progressions, which throws off generated progressions in major keys. As you can see below, all three of these individual chord changes which I noted as &quot;odd&quot; come from minor progressions in the database.</span>
+<span id="cb6-217"><a href="#cb6-217" aria-hidden="true" tabindex="-1"></a>In case you haven&#39;t noticed, the problem with these chord changes is that none of them make sense in the context of a major key (which all my progressions are based in). What I realized is that the model was sampling from major *as well as* minor progressions, which throws off generated progressions. As you can see below, all three of these individual chord changes which I noted as &quot;odd&quot; come from minor progressions in the database.</span>
 <span id="cb6-218"><a href="#cb6-218" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-219"><a href="#cb6-219" aria-hidden="true" tabindex="-1"></a><span class="in">```{r, echo=FALSE}</span></span>
 <span id="cb6-220"><a href="#cb6-220" aria-hidden="true" tabindex="-1"></a><span class="in">selected_songs &lt;- CPWK %&gt;%</span></span>
@@ -6202,13 +6202,13 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb6-235"><a href="#cb6-235" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-236"><a href="#cb6-236" aria-hidden="true" tabindex="-1"></a><span class="ss"> - </span>If I set the starting chord to &quot;I&quot;, the model will only train from major-mode chord progressions.</span>
 <span id="cb6-237"><a href="#cb6-237" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-238"><a href="#cb6-238" aria-hidden="true" tabindex="-1"></a><span class="ss"> - </span>If I set it to &quot;Im&quot;, the model will only use minor-mode chord progressions.</span>
+<span id="cb6-238"><a href="#cb6-238" aria-hidden="true" tabindex="-1"></a><span class="ss"> - </span>If I set it to &quot;Im&quot;, the model will only train from minor-mode chord progressions.</span>
 <span id="cb6-239"><a href="#cb6-239" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-240"><a href="#cb6-240" aria-hidden="true" tabindex="-1"></a>This ensures that the statistical patterns it learns are harmonically consistent with the type of progression being generated.  </span>
 <span id="cb6-241"><a href="#cb6-241" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-242"><a href="#cb6-242" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**Eliminating chord repitition**</span>
 <span id="cb6-243"><a href="#cb6-243" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-244"><a href="#cb6-244" aria-hidden="true" tabindex="-1"></a>**PROBLEM**: Of the many chord changes that can occur in jazz, one of the most common is &quot;resting&quot; on a chord (i.e. repeating the same chord). This typically only occurs for two or three bars, but my model doesn&#39;t know that. Because of the frequency with which &quot;resting&quot; occurs, my model often generates the same chord repeatedly. For example, here are some laughable chord progressions my previous model generated:  </span>
+<span id="cb6-244"><a href="#cb6-244" aria-hidden="true" tabindex="-1"></a>**PROBLEM**: Of the many chord changes that can occur in jazz, one of the most common is &quot;resting&quot; on a chord (i.e. repeating the same chord). This typically only occurs for two or three bars, but my model doesn&#39;t know that. Because of the frequency with which &quot;resting&quot; occurs, my model often generates the same chord repeatedly. For example, here are some laughable chord progressions that my previous model generated:  </span>
 <span id="cb6-245"><a href="#cb6-245" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-246"><a href="#cb6-246" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">` C | C | C | C | C | C | Am7 | Dm7 `</span>  </span>
 <span id="cb6-247"><a href="#cb6-247" aria-hidden="true" tabindex="-1"></a></span>
@@ -6348,7 +6348,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb6-385"><a href="#cb6-385" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-386"><a href="#cb6-386" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb6-387"><a href="#cb6-387" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb6-388"><a href="#cb6-388" aria-hidden="true" tabindex="-1"></a>With the previous model, I was just happy that it was semi-functional. Now, these are some serious-looking, complex, functional chord progressions! I don&#39;t need to go through gobs of music theory now to prove that - *I&#39;ll showcase some generated chord progressions and examples of correct music theory in a later update* - but this is proof of a working, complex, jazz chord progression generator.</span>
+<span id="cb6-388"><a href="#cb6-388" aria-hidden="true" tabindex="-1"></a>With the previous model, I was just happy that it was semi-functional. Now, these are some serious-looking, complex, functional chord progressions! I don&#39;t need to go through gobs of music theory now to prove that - *I&#39;ll showcase some generated chord progressions in a later update* - but this is proof of a working jazz chord progression generator.</span>
 <span id="cb6-389"><a href="#cb6-389" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-390"><a href="#cb6-390" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Converting Back to Standard Chords </span></span>
 <span id="cb6-391"><a href="#cb6-391" aria-hidden="true" tabindex="-1"></a></span>

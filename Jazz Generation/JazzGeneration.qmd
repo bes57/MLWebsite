@@ -188,9 +188,9 @@ for (i in 1:8) {
   cat(sprintf("[%02d] %s\n", i, paste(generate_sequence("I"), collapse = ", ")))
 }
 ```
-To quote Dr. Frankenstein, "It's alive! It's alive!" I have a lot of thoughts, but let's focus on the positives:
+It's alive! I have a lot of thoughts, but let's focus on the positives:
 
- - The chord progressions (for the most part) are theoretically sound! For example, `Chord Progression [01]` has a great ending. The VI chord into the IIm7-V7 is a good idea, and the IIm7-V7 is perfectly resolved by restarting the chord progression (i.e. going back to the I chord.) There are highs and lows, but you'll have to trust me when I say that - for the most part - there's some coherence here. At least more than previous models.  
+ - The chord progressions (for the most part) are theoretically sound! For example, `Chord Progression [01]` has a great ending. The VI chord into the IIm7-V7 is a good idea, and the IIm7-V7 is perfectly resolved by restarting the chord progression (i.e. going back to the I chord.) There are highs and lows, but you'll have to trust me when I say that - for the most part - there's some coherence here. At least more than previous scrapped models.  
  
  - Basic resolution patterns seem to be followed. One of the most standard examples of that is V chords resolving to the I (which has been referenced both above and multiple times throughout the narrative.) We see this happening multiple times in the above progression, but let's go one step further. I wrote some code below to check the model's probabilistic tendencies for what chord to choose next when met with a V7 chord:
 

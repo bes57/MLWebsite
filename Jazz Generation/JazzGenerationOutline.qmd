@@ -25,7 +25,7 @@ knitr:
 
 ## Introduction
 
-As AI continues to reshape the modern world, much of the public discourse remains fixated on questions like “How will AI advance medical research?” or “How will AI impact global food security?” I think it’s time we turn our attention to more pressing matters - such as using AI to generate jazz chord progressions!
+As AI continues to reshape the modern world, much of the public discourse remains fixated on questions like “How will AI advance medical research?” or “How will AI impact global food security?” I think it’s time we turn our attention to more pressing questions - such as "How will AI help create jazz chord progressions?"
 
 Jokes aside, that is the goal of this personal research project: **To build a large language model (LLM) capable of generating jazz chord progressions with harmonic coherence.**  
 
@@ -33,7 +33,7 @@ Now, as much as I'd like to live in a world where everyone had a baseline level 
 
 ## Optional Explanation of Jazz Chord Progressions
 
-Chord progressions simply are defined as a sequence of chords over a blocked amount of musical time. They are not instructions on what to play specifically, as much as they are describing the harmonic backbone of a musical piece. For example, an overly-simplistic chord progression would be:  
+Chord progressions are defined as a sequence of chords over a blocked amount of musical time. They are not instructions on what to play specifically, as much as they are describing the harmonic backbone of a musical piece. For example, an overly-simplistic chord progression would be:  
 $|\ \text{C}\ |\ \text{Am}\ |\ \text{F}\ |\ \text{G}\ |$. What this means is that the first bar is in the key of C, the second in A minor, etc. This is simply just a *framework*. Jazz musicians then take these progressions and play over them. This means they're constantly aware of what bar they're in within the progression and what key corresponds to the current bar. Then, they improvise their melodies or perform their comping (short for "accompanying", meaning to provide background harmonics to outline the progression) all based on the current key of the progression. 
 
 How is this written in jazz? Well, jazz music is typically stored in something called "lead sheets". A lead sheet condenses a song down to its essential elements: the melody (usually notated in standard notation) and the chord progression (written above the staff). This is all a jazz musician needs to interpret and perform a tune — the rest is up to personal style and improvisation. For example, look at the below lead sheet for a personal favorite standard of mine, Dinah.

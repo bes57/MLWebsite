@@ -23,7 +23,7 @@ knitr:
 
 ---
 ## Introduction
-Surprisingly enough, one of the most challenging parts of this project was to create a dataset for the model. There is no easily accesible dataset with jazz chord progressions, at least one that was correctly formatted for an LLM. I was able to find a Github repository with almost 1,000 progressions. I took it upon myself to download the JSON file, filter the progressions, and mutate the dataset to be functional for the model.  
+Surprisingly enough, one of the most challenging parts of this project was to create a dataset for the model. There is no easily accesible dataset with jazz chord progressions, at least one that was correctly formatted for an LLM. To start, I was able to find a Github repository with almost 1,000 progressions. I took it upon myself to download the JSON file, filter the progressions, and mutate the dataset to be functional for the model.  
 
 The Github repository can be found [here](https://github.com/mikeoliphant/JazzStandards).
 
@@ -102,11 +102,11 @@ df_unique_titles <- df %>%
 #write.csv(df_unique_titles, "unique_titles_only.csv", row.names = FALSE)
 ```
 #### Dataset Mutation
-Then came the most challenging part. The most important step in preparing this dataset for the LLM was converting the progression from standard chord symbols into Roman numeral notation. While chords like "Cmaj7" or "Am7" carry harmonic meaning, their *function* within the progression is key-dependent. For example, Cmaj7 serves as the "I chord" in the key of C, the "home base" chord. It provides resolution and stability. However, in the key of F, Cmaj7 serves as the "V chord", which practically is begging to be resolved back to the "I chord" (in this case F.) In this case, it is the antithesis of resolution, providing tension instead. This distinction is critical for the LLM because it allows the model to focus on harmonic roles rather than absolute pitches.  
+Then came the most challenging part. The most important step in preparing this dataset for the LLM was converting the progression from standard chord symbols into Roman numeral notation. While chords like "Cmaj7" or "Am7" carry harmonic meaning, their *function* within the progression is key-dependent. For example, Cmaj7 serves as the "I chord" in the key of C, the "home base" chord. It provides resolution and stability. However, in the key of F, Cmaj7 serves as the "V chord", which begs to be resolved back to the "I chord" (in this case F.) In that case, it is the antithesis of resolution, providing tension instead. This distinction is critical for the LLM because it allows the model to focus on harmonic roles rather than absolute pitches.  
 
 I built a set of helper functions and mappings to identify enharmonic equivalents and properly assign chords to their relative Roman numerals based on key context. This included support for complex chord types like slash chords (e.g., C/E) and substitutions (e.g., Cmaj7(Am7)), which are common in jazz but easy to mishandle in automated systems.
 
-Other than that, there were some small formatting issues that I fixed within in the raw chord strings (e.g.removing redundant commas, trimming whitespace, and fixing formatting issues like misplaced commas before barlines or parentheses.) This was necessary to avoid parsing errors later on (as I discovered in my hours of coding errors.) 
+Other than that, there were some small formatting issues that I fixed within in the raw chord strings (e.g. removing redundant commas, trimming whitespace, and fixing formatting issues like misplaced commas before barlines or parentheses.) This was necessary to avoid parsing errors later on (as I discovered in my hours of coding errors.) 
 
 ```{r}
 CPWK <- read_csv("Unique Titles SOMEWHAT - unique_titles_only.csv") %>%
