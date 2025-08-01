@@ -223,7 +223,7 @@ The benefit of this being my second entry is that I can copy over some of the da
 
 Now, let's start with the most straightforward but important calculation.
 
-#### Firstly, my profit thusfar in 2025:
+#### Firstly, my profit thus far in 2025:
 ```{r}
 total_realized_profit <- sum(Kalshi25June_arb$Realized_Profit_Clean, na.rm = TRUE)
 
@@ -283,7 +283,7 @@ It's important to note, though, that the nature of UFC fights being far and few 
 
 ## Consistency
 
-Well, market analysis aside, I'd like to transition by coming back to a previously written sentiment of mine: May was about developing my strategies while June was more so about consistent application of the same techniques on the same markets (allbeit some small, insignifigant tweaks.) Well, let's check my consistency!  
+Well, market analysis aside, I'd like to transition by coming back to a previously written sentiment of mine: May was about developing my strategies while June was more so about consistent application of the same techniques on the same markets (albeit some small, insignificant tweaks.) Well, let's check my consistency!  
 
 #### Observe my trading calendar for June:
 
@@ -382,7 +382,7 @@ ggplot(plot_data, aes(x = Trade_Date, y = Cumulative_Contracts, color = Category
 
 This looks about right; there's a consistent rate at which I'm trading on the baseball market, with some dabbling in other markets from time to time. This isn't just a natural phenomenon, but it's an intended result. My end goal was always to have some long-term edge that is consistent and reproducible, and after some expirimentation in May, it seems I've found that in baseball markets. Why do I want replicable consistency in my trading?
 
-1. Having alpha an a daily market as opposed to sporadic, temporary markets (mention markets, march madness markets, etc.) offers more consistent flow of money with long-term value. 
+1. Having alpha in a daily market as opposed to sporadic, temporary markets (mention markets, march madness markets, etc.) offers more consistent flow of money with long-term value. 
 
 2. It's easier to refine my strategy. With a daily market, I have a larger sample size to confirm that my strategy is profitable, experiment with different tweaks, and maximize profitability. Unpredictable markets are harder to prepare for and predict.  
 
@@ -468,11 +468,11 @@ test_results %>%
   kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover", "condensed"))
 ```
 <br>  
-With the null hypothesis for both tests being that my true average (or median) profit is less than or equal to zero - meaning I have no consistent profitability or could even be losing - the small p-values seem to suggest that I'm likely profitable. I mean, 1.770e-07 and 2.040e-13 sure *seem* smaller than the *"p-value < 0.05"* standard. But, for better understanding, let's be clear as to what these test are doing, what they're saying, and why they're good (or bad.) 
+With the null hypothesis for both tests being that my true average (or median) profit is less than or equal to zero - meaning I have no consistent profitability or could even be losing - the small p-values seem to suggest that I'm likely profitable. I mean, 1.770e-07 and 2.040e-13 sure *seem* smaller than the *"p-value < 0.05"* standard. But, for better understanding, let's be clear as to what these tests are doing, what they're saying, and why they're good (or bad.) 
 
 #### t-test  
 
-The t-test assumes a normal distribution and evaluates whether the mean, based on sample size and variance, is signifigantly greater than 0. What this final p-value means is, under the assumption that my true average profit is zero or negative, the probability of observing a sample mean this large ($9.71) is 0.0000177%. Now, as promising as this is, I don't know if I believe that my baseball market profitability distribution is normal. Let's check: 
+The t-test assumes a normal distribution and evaluates whether the mean, based on sample size and variance, is significantly greater than 0. What this final p-value means is, under the assumption that my true average profit is zero or negative, the probability of observing a sample mean this large ($9.71) is 0.0000177%. Now, as promising as this is, I don't know if I believe that my baseball market profitability distribution is normal. Let's check: 
 
 #### Histogram to check for normality  
 
@@ -495,7 +495,7 @@ Honestly, it's more normal-looking than I expected. There's some left skew, but 
 
 #### Wilcoxon test  
 
-Unlike the t-test, the Wilcoxon test *doesn't* assume normality, instead evaluating the median profit by ranking each trade's direction and magnitude. This makes the wilcoxon test more universal, but less precise. Still, with this final p-value of 2.040e-13, the probability of observing profits this consistently positive is 0.0000277% under the null hypothesis according to the Wilcoxon test. More affirmation that I'm consistently profitable in baseball markets is good!  
+Unlike the t-test, the Wilcoxon test *doesn't* assume normality, instead evaluating the median profit by ranking each trade's direction and magnitude. This makes the Wilcoxon test more universal, but less precise. Still, with this final p-value of 2.040e-13, the probability of observing profits this consistently positive is 0.0000277% under the null hypothesis according to the Wilcoxon test. More affirmation that I'm consistently profitable in baseball markets is good!  
 
 ## Conclusion (with a twist)
 

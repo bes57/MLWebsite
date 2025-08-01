@@ -72,7 +72,7 @@ glimpse(Kalshi25)
 For fun, let's start simple by looking at some straight numbers thus far. Nothing fancy.  
 
 
-#### Firstly, my profit thusfar in 2025:
+#### Firstly, my profit thus far in 2025:
 ```{r}
 Kalshi25$Realized_Profit_Clean <- as.numeric(gsub("[\\$,]", "", Kalshi25$Realized_Profit))
 total_realized_profit <- sum(Kalshi25$Realized_Profit_Clean, na.rm = TRUE)
@@ -317,7 +317,7 @@ biggest_outliers_no_arb |>
 
 ```
 <br>
-Ok! We're back in buisness. As a quick disclaimer, the "ticker" variable is the ID for the market that the trade took place in. I know the "ticker" ID can be difficult to understand without context, but I can use them to recall what these trades were.
+Ok! We're back in business. As a quick disclaimer, the "ticker" variable is the ID for the market that the trade took place in. I know the "ticker" ID can be difficult to understand without context, but I can use them to recall what these trades were.
 
 Notably, my second-most-profitable trade was on the South Korean presidency market, for \$181, on Mar 21. Not to be outdone, I quickly lost \$286 two weeks later on the same market on Apr 04. Impressive.
 
