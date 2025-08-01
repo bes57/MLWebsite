@@ -570,4 +570,3 @@ p <- layout(
 p
 ```
 <br>
-*P.S. Shit. I realize I didn't lose the $4,819 I promised to lose. I apologize. To make up for that, I'll go lose $7,804 instead.*
