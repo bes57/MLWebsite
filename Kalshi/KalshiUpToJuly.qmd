@@ -1,0 +1,668 @@
+---
+title: "Kalshi Analysis 2025 (Updated July)"
+author: "Benjamin Sherman"
+format:
+  html:
+    code-fold: true
+    code-summary: "Show code"
+    code-tools: true 
+    embed-resources: true
+
+knitr:
+  opts_chunk:        ########## set global options ############
+    collapse: true   # keep code from blocks together (if shown)
+    message: true    # show messages
+    warning: false    # show warnings
+    error: false      # show error messages
+    comment: ""      # don't show ## with printed output
+    dpi: 300         # image resolution (typically 300 for publication)
+    fig-width: 6.5   # figure width
+    fig-height: 4.0  # figure height
+    R.options:    
+      digits: 3    # round to three digits
+
+---
+## Introduction
+
+Kendrick Lamar's third studio album was **good kid, m.A.A.d city**. Wilt Chamberlain's third NBA season (1961-62) was when he averaged 50.4 points per game, **a record that still stands to this day**. The third *Legend of Zelda* game was **A Link To The Past**. Calvin Judkins and Lula Mae Hardaway's third child was Stevland Hardaway Judkins, who went on to become **Stevie Wonder**.
+
+Clearly, this trend suggests I'm on the verge of greatness with the third entry into my trading journal.
+
+## Basic Statistics
+
+#### *View below code to see library loading*
+```{r}
+#| label: library
+#install.packages("kableExtra")
+suppressPackageStartupMessages(library(tidymodels))
+tidymodels_prefer()
+suppressPackageStartupMessages(library(tidyverse))
+library(glue)
+library(patchwork)
+library(shiny)
+library(plotly)
+library(forcats)
+library(lubridate)
+library(kableExtra)
+library(glue)
+library(rUM)
+library(rio)
+library(table1)
+library(knitr)
+library(gt)
+library(broom)
+library(stringr)
+library(conflicted)
+library(RColorBrewer)
+library(scales)
+conflicted::conflicts_prefer(plotly::layout)
+```
+
+#### *View below code to see dataset loading/cleaning* 
+
+```{r}
+clean_dollar <- function(x) {
+  x <- gsub("[^0-9.-]", "", x)  
+  as.numeric(x)
+}
+
+Kalshi25July <- read.csv("KalshiJuly25.csv", stringsAsFactors = FALSE)
+
+Kalshi25July$Created_Clean <- gsub(" at ", " ", Kalshi25July$Created)
+Kalshi25July$Created_Clean <- gsub(" EST", "", Kalshi25July$Created_Clean)
+Kalshi25July$Created_Parsed <- parse_date_time(Kalshi25July$Created_Clean, orders = "b d, Y I:Mp")
+
+Kalshi25July$Month <- format(Kalshi25July$Created_Parsed, "%B")
+Kalshi25July$DayOfWeek <- weekdays(Kalshi25July$Created_Parsed) 
+Kalshi25July$Hour <- hour(Kalshi25July$Created_Parsed)              
+
+Kalshi25July <- Kalshi25July |> select(-Created)
+
+Kalshi25July$Realized_Profit_Clean   <- clean_dollar(Kalshi25July$Realized_Profit)
+Kalshi25July$Realized_Revenue_Clean <- clean_dollar(Kalshi25July$Realized_Revenue)
+Kalshi25July$Realized_Cost_Clean    <- clean_dollar(Kalshi25July$Realized_Cost)
+Kalshi25July$Fees_Clean             <- clean_dollar(Kalshi25July$Fees)
+Kalshi25July$Contracts              <- as.numeric(Kalshi25July$Contracts)
+
+baseball_df <- Kalshi25July %>%
+  filter(str_starts(Ticker, "KXMLBGAME")) %>%
+  filter(!is.na(Realized_Profit_Clean), Contracts > 0) %>%
+  mutate(GameID = str_replace(Ticker, "-[^-]+$", ""))
+
+baseball_summary <- baseball_df %>%
+  group_by(GameID) %>%
+  summarise(
+    Realized_Profit_Clean   = sum(Realized_Profit_Clean, na.rm = TRUE),
+    Realized_Revenue_Clean  = sum(Realized_Revenue_Clean, na.rm = TRUE),
+    Realized_Cost_Clean     = sum(Realized_Cost_Clean, na.rm = TRUE),
+    Fees_Clean              = sum(Fees_Clean, na.rm = TRUE),
+    Contracts               = sum(Contracts, na.rm = TRUE),
+    Created_Parsed          = min(Created_Parsed, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+baseball_metadata <- baseball_df %>%
+  group_by(GameID) %>%
+  slice(1) %>%
+  ungroup() %>%
+  select(-Realized_Profit_Clean, -Realized_Revenue_Clean, -Realized_Cost_Clean, -Fees_Clean, -Contracts, -Created_Parsed)
+
+baseball_collapsed <- left_join(baseball_summary, baseball_metadata, by = "GameID") %>%
+  mutate(Ticker = GameID) %>%
+  select(-GameID)
+
+non_baseball_df <- Kalshi25July %>%
+  filter(!str_starts(Ticker, "KXMLBGAME"))
+
+Kalshi25July_arb <- bind_rows(non_baseball_df, baseball_collapsed)
+
+# WNBA Arbitrages
+womensbball <- Kalshi25July_arb %>%
+  filter(str_starts(Ticker, "KXWNBAGAME")) %>%
+  filter(!is.na(Realized_Profit_Clean)) %>%
+  mutate(
+    GameID = str_replace(Ticker, "-[^-]+$", ""),
+    Contracts = as.numeric(Contracts)
+  )
+
+womensbball_collapsed <- womensbball %>%
+  group_by(GameID) %>%
+  summarise(
+    Ticker                 = first(GameID),
+    Realized_Profit_Clean = sum(Realized_Profit_Clean, na.rm = TRUE),
+    Realized_Revenue_Clean = sum(Realized_Revenue_Clean, na.rm = TRUE),
+    Realized_Cost_Clean    = sum(Realized_Cost_Clean, na.rm = TRUE),
+    Fees_Clean             = sum(Fees_Clean, na.rm = TRUE),
+    Contracts              = sum(Contracts, na.rm = TRUE),
+    Created_Parsed         = min(Created_Parsed, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+non_womensbball <- Kalshi25July_arb %>%
+  filter(!str_starts(Ticker, "KXWNBAGAME"))
+
+Kalshi25July_arb <- bind_rows(non_womensbball, womensbball_collapsed) %>%
+  arrange(desc(Created_Parsed))
+
+# UFC Arbitrages
+ufc <- Kalshi25July_arb %>%
+  filter(str_starts(Ticker, "KXUFCFIGHT")) %>%
+  filter(!is.na(Realized_Profit_Clean)) %>%
+  mutate(
+    GameID = str_replace(Ticker, "-[^-]+$", ""),
+    Contracts = as.numeric(Contracts)
+  )
+
+ufc_collapsed <- ufc %>%
+  group_by(GameID) %>%
+  summarise(
+    Ticker                 = first(GameID),
+    Realized_Profit_Clean = sum(Realized_Profit_Clean, na.rm = TRUE),
+    Realized_Revenue_Clean = sum(Realized_Revenue_Clean, na.rm = TRUE),
+    Realized_Cost_Clean    = sum(Realized_Cost_Clean, na.rm = TRUE),
+    Fees_Clean             = sum(Fees_Clean, na.rm = TRUE),
+    Contracts              = sum(Contracts, na.rm = TRUE),
+    Created_Parsed         = min(Created_Parsed, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+non_ufc <- Kalshi25July_arb %>%
+  filter(!str_starts(Ticker, "KXUFCFIGHT"))
+
+Kalshi25July_arb <- bind_rows(non_ufc, ufc_collapsed) %>%
+  arrange(desc(Created_Parsed))
+
+# NCAA MBB Arbitrages
+ncaa_mbb <- Kalshi25July_arb %>%
+  filter(str_starts(Ticker, "KXNCAAMBACHAMP")) %>%
+  filter(!is.na(Realized_Profit_Clean)) %>%
+  mutate(
+    GameID = str_replace(Ticker, "-[^-]+$", ""),
+    Contracts = as.numeric(Contracts)
+  )
+
+ncaa_mbb_collapsed <- ncaa_mbb %>%
+  group_by(GameID) %>%
+  summarise(
+    Ticker                 = first(GameID),
+    Realized_Profit_Clean = sum(Realized_Profit_Clean, na.rm = TRUE),
+    Realized_Revenue_Clean = sum(Realized_Revenue_Clean, na.rm = TRUE),
+    Realized_Cost_Clean    = sum(Realized_Cost_Clean, na.rm = TRUE),
+    Fees_Clean             = sum(Fees_Clean, na.rm = TRUE),
+    Contracts              = sum(Contracts, na.rm = TRUE),
+    Created_Parsed         = min(Created_Parsed, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+non_ncaa_mbb <- Kalshi25July_arb %>%
+  filter(!str_starts(Ticker, "KXNCAAMBACHAMP"))
+
+Kalshi25July_arb <- bind_rows(non_ncaa_mbb, ncaa_mbb_collapsed) %>%
+  arrange(desc(Created_Parsed))
+
+# Categorize Kalshi25July_arb markets into logical buckets
+Kalshi25July_arb <- Kalshi25July_arb %>% 
+  mutate(
+    Category = case_when(
+      str_detect(Ticker, regex("^(KXMLBGAME|MLBGAME|KXMLBHR|KXMLBAS)", ignore_case = TRUE))        ~ "Baseball",
+      str_detect(Ticker, regex("^(KXNBAGAME|KXNBASERIES|KXNBA|KXNBADRAFT)", ignore_case = TRUE))   ~ "Basketball",
+      str_detect(Ticker, regex("^(KXWNBAGAME|WNBA)", ignore_case = TRUE))         ~ "Women's Basketball",
+      str_detect(Ticker, regex("^(KXNHLGAME|KXNHL)", ignore_case = TRUE))         ~ "Hockey",
+      str_detect(Ticker, regex("^(UFC|KXUFC)", ignore_case = TRUE))                       ~ "UFC",
+      str_detect(Ticker, regex("(MARMAD|NCAAMB)", ignore_case = TRUE))            ~ "College Basketball",
+      str_detect(Ticker, regex("(WMARMAD|NCAAWB)", ignore_case = TRUE))           ~ "Women’s College Basketball",
+      str_detect(Ticker, regex("(KXMASTERS|PGA(TOUR)?|USOPEN|LIVTOUR|KXTHEOPEN)", ignore_case = TRUE)) ~ "Golf",
+      str_detect(Ticker, regex("(WIMBLEDON|FOMENSINGLES|FOWOMENSINGLES)", ignore_case = TRUE)) ~ "Tennis",
+      str_detect(Ticker, regex("(BITCOIN|BTC)", ignore_case = TRUE))              ~ "Crypto",
+      str_detect(Ticker, regex("(MENTION|KXTRUMP)", ignore_case = TRUE))                    ~ "Mention Markets",
+      str_detect(Ticker, regex("(VALORANT|VCT|AUSTINMAJOR|CS2?|ESPORT)", ignore_case = TRUE)) ~ "Esports",
+      str_detect(Ticker, regex("^(KXMAYOR)", ignore_case = TRUE))        ~ "Politics",
+      str_detect(Ticker, regex("^(KXAPP)", ignore_case = TRUE))        ~ "App Ranking",
+      str_detect(Ticker, regex("^(KXF1)", ignore_case = TRUE))        ~ "F1",
+      str_detect(Ticker, regex("^(KXTOPALBUM)", ignore_case = TRUE))        ~ "Music",
+
+      TRUE ~ "Other"
+    )
+  )
+```
+
+#### As always, let's start with my profit thus far in 2025:
+
+```{r}
+total_realized_profit <- sum(Kalshi25July_arb$Realized_Profit_Clean, na.rm = TRUE)
+
+
+data.frame(Total_Realized_Profit = dollar(total_realized_profit)) |>
+  kable(caption = "", align = "c") |>
+  kable_styling(full_width = FALSE)
+```
+  
+<br>
+I hate to be a broken record, but the two "notably good things" from June's entry remain true:
+
+1. The number is still positive
+
+2. The number is getting bigger
+
+However, there's a third thing:  
+
+3. The rate at which my rate of profit is increasing, is increasing (i.e. second derivative, acceleration, etc.) 
+
+That's not a well-made sentence, but it's true. The below chart will help clarify as to what I'm talking about: note how the money flow is speeding up. 
+
+```{r}
+
+months <- c("May", "June", "July")
+totals <- c(4819, 7804, 12021)
+diffs <- c(NA, diff(totals))
+
+df <- data.frame(
+  Month = months,
+  Total = totals,
+  Change = c("—", paste0("+$", format(round(diffs[-1], 2), nsmall = 2)))
+)
+
+kable(df, "html", align = "c", caption = "Monthly Totals and Differences") %>%
+  kable_styling(
+    full_width = FALSE,
+    position = "center",
+    bootstrap_options = c("striped", "hover", "condensed", "responsive")
+  )
+```
+<br>
+This is, of course, encouraging, but it's made more encouraging by the fact that I barely traded in the beginning of July. As I recall, I primarily traded in the last 2/3rds of the July. Let's check to see if that's true!  
+
+```{r}
+Kalshi25July_arb %>%
+  filter(month(Created_Parsed) == 7) %>%
+  mutate(Date = as.Date(Created_Parsed)) %>%
+  count(Date) %>%
+  arrange(Date) %>%
+  mutate(Cumulative_Trades = cumsum(n)) %>%
+  ggplot(aes(x = Date, y = Cumulative_Trades)) +
+  geom_line(color = "#0F9D58", size = 1.2) +
+  labs(
+    title = "Cumulative Number of Trades in July 2025",
+    x = "Date",
+    y = "Cumulative Trades"
+  ) +
+  theme_minimal()
+```
+At first glance, it seems like I was right. The line barely picks up off the bottom of the graph until July 13th. For comparison, here's a graph of June's cumulative trades:
+```{r}
+Kalshi25July_arb %>%
+  filter(month(Created_Parsed) == 6) %>%
+  mutate(Date = as.Date(Created_Parsed)) %>%
+  count(Date) %>%
+  arrange(Date) %>%
+  mutate(Cumulative_Trades = cumsum(n)) %>%
+  ggplot(aes(x = Date, y = Cumulative_Trades)) +
+  geom_line(color = "#0F9D58", size = 1.2) +
+  labs(
+    title = "Cumulative Number of Trades in June 2025",
+    x = "Date",
+    y = "Cumulative Trades"
+  ) +
+  theme_minimal()
+```
+
+Finally, the two months' cumulative trade counts overlaid on the same graph:
+
+```{r}
+june_data <- Kalshi25July_arb %>%
+  filter(month(Created_Parsed) == 6) %>%
+  mutate(Day = day(Created_Parsed)) %>%
+  count(Day) %>%
+  complete(Day = 1:30, fill = list(n = 0)) %>%
+  arrange(Day) %>%
+  mutate(Cumulative_Trades = cumsum(n), Month = "June")
+
+july_data <- Kalshi25July_arb %>%
+  filter(month(Created_Parsed) == 7) %>%
+  mutate(Day = day(Created_Parsed)) %>%
+  count(Day) %>%
+  complete(Day = 1:31, fill = list(n = 0)) %>%
+  arrange(Day) %>%
+  mutate(Cumulative_Trades = cumsum(n), Month = "July")
+
+bind_rows(june_data, july_data) %>%
+  filter(Day <= 30) %>%
+  ggplot(aes(x = Day, y = Cumulative_Trades, color = Month)) +
+  geom_line(size = 1.2) +
+  scale_color_manual(values = c("June" = "#4285F4", "July" = "#0F9D58")) +
+  scale_x_continuous(breaks = 1:31) +
+  labs(
+    title = "Cumulative Trades: June vs. July 2025",
+    x = "Day of Month",
+    y = "Cumulative Trades"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(legend.position = "top")
+```
+
+As shown above, not only did the large majority of my trades come from the last two-thirds of July, but I also had fewer overall trades than June - all while making 1.5x as much profit.  
+
+In fact, let's see how much money I made from July 13th onwards:
+
+```{r}
+profit_july_13_onward <- Kalshi25July_arb %>%
+  filter(
+    month(Created_Parsed) == 7,
+    day(Created_Parsed) >= 13
+  ) %>%
+  summarise(Total_Profit = sum(Realized_Profit_Clean, na.rm = TRUE)) %>%
+  pull(Total_Profit)
+
+tibble::tibble(`Total Profit (July 13–31)` = scales::dollar(profit_july_13_onward)) %>%
+  kable(caption = "Total Profit from July 13 to July 31, 2025", align = "c") %>%
+  kable_styling(full_width = FALSE)
+```
+<br>
+In those last two and a half weeks of July alone, I made more than all of June.
+
+The obvious question here is: how? Well, I'd refer back to a comment of mine in June's journal entry on the importance of baseball markets being daily and consistent:  
+
+*"It's easier to refine my strategy. With a daily market, I have a larger sample size to confirm that my strategy is profitable, experiment with different tweaks, and maximize profitability. Unpredictable markets are harder to prepare for and predict."*   
+
+As it turns out, I was right. In July, I doubled down on my optimization of the baseball markets; taking time to eliminate the moments in which I was trading that were -EV or high-risk, increasing my volume in the remaining moments that I'm convinced are +EV, and ultimately increasing my profitability.  
+
+I'd like to discuss a little bit further this idea of "eliminating the moments in which I was trading" without completely revealing my trading strategy on the baseball markets (for free on a public website.)  
+
+## Baseball Markets
+
+Let there be some arbitrary moments in a baseball game **A**, **B**, **C**, **D**, **E**, and **F**. These could be things like "The game is tied", "Bases are loaded", "Rain delay", etc. Again, this being arbitrary, let's say my previous strategy was to trade at moments **A**, **C**, **E**, and **F**.  
+
+1. With strong return totals over time using this strategy, it's easy to incorrectly assume that each individual moment is profitable. Some moments might have made large amounts of money while others could have been break-even or outright losses. Looking at the final number obscures that nuance. There are many such ways this can be true. For example, let's say trading at **C** lost me $500 while **A** made me $500, **E** made me $700, and **F** made me $1,300. The overall P/L is $2,000, which can lead to me incorrectly believing that I've chosen the correct moments to trade at. However, **C** seems to be losing me money.
+
+2. There's even more nuance to be had; isolated profit from trading at a moment does not mean true long-term profitability from said moment. For example, let's say **A** has an extreme but rare downside risk. Something where **A** resolves to +$50 P/L 95% of the time, but resolves to -$1,000 P/L 5% of the time (this is way oversimplified and trades don't simply "resolve" like this, but it's for the sake of an argument.) The EV of trading at **A** is -$2.5, but if I only trade at moment **A** 10 times in a month, you will most likely not see a single one of those losses (~59%):  
+
+$$
+P(\text{at least one loss}) = 1 - 0.95^{10} \approx 1 - 0.5987 = 0.4013
+$$
+  
+Again, this would make it easy to incorrectly conclude that **A** is profitable, even if it's made money over a period of time. 
+
+These are the types of situations I found myself dealing with while optimizing my trading strategy for the baseball markets; using intuitive reasoning to eliminate certain moments from my trading strategy that I found unprofitable/high risk. Then, in the moments that remained that were highest EV/involved minimal risk, I increased my volume. This all comes back to trading less frequently but trading *more* in the baseball market. 
+
+Well, enough talk about what I did, let's see the actual proof:
+
+```{r}
+contract_counts <- Kalshi25July_arb %>%
+  filter(month(Created_Parsed) %in% c(6, 7)) %>%
+  mutate(
+    Month = ifelse(month(Created_Parsed) == 6, "June", "July"),
+    Type  = ifelse(Category == "Baseball", "Baseball", "Non-Baseball")
+  ) %>%
+  group_by(Month, Type) %>%
+  summarise(Contracts = sum(Contracts, na.rm = TRUE), .groups = "drop") %>%
+  mutate(
+    Month = factor(Month, levels = c("June", "July")),
+    Type  = factor(Type, levels = c("Baseball", "Non-Baseball"))
+  )
+
+ggplot(contract_counts, aes(x = Month, y = Contracts, fill = Type)) +
+  geom_col(position = position_dodge(width = 0.8), width = 0.7) +
+  geom_text(aes(label = Contracts),
+            position = position_dodge(width = 0.8),
+            vjust = -0.3, size = 4) +
+  labs(
+    title = "Number of Contracts by Category",
+    x = "Month",
+    y = "Number of Contracts",
+    fill = "Category"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+<br>
+As shown above, we see an increase in volume on the baseball markets. Now, what about profit?  
+
+
+```{r}
+june_profit <- Kalshi25July_arb %>%
+  filter(month(Created_Parsed) == 6) %>%
+  mutate(Type = ifelse(Category == "Baseball", "Baseball", "Non-Baseball")) %>%
+  group_by(Type) %>%
+  summarise(Profit = sum(Realized_Profit_Clean, na.rm = TRUE), .groups = "drop") %>%
+  mutate(Month = "June")
+
+july_profit <- Kalshi25July_arb %>%
+  filter(month(Created_Parsed) == 7) %>%
+  mutate(Type = ifelse(Category == "Baseball", "Baseball", "Non-Baseball")) %>%
+  group_by(Type) %>%
+  summarise(Profit = sum(Realized_Profit_Clean, na.rm = TRUE), .groups = "drop") %>%
+  mutate(Month = "July")
+
+profit_df <- bind_rows(june_profit, july_profit) %>%
+  mutate(
+    Month = factor(Month, levels = c("June", "July")),
+    Type  = factor(Type, levels = c("Baseball", "Non-Baseball"))
+  )
+
+ggplot(profit_df, aes(x = Month, y = Profit, fill = Type)) +
+  geom_col(position = position_dodge(width = 0.8), width = 0.7) +
+  geom_text(aes(label = dollar(Profit)),
+            position = position_dodge(width = 0.8),
+            vjust = -0.3, size = 4) +
+  scale_y_continuous(labels = dollar_format()) +
+  labs(
+    title = "Total Profit by Category",
+    x = "Month",
+    y = "Profit (USD)",
+    fill = "Category"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+<br>
+As the bar chart makes clear, not only did baseball markets dominate my trading volume in July, they also became my primary profit driver. Baseball profits jumped from roughly $1,497 in June to over $2,170 in July (45% increase) while non-baseball profits dipped slightly from $1,532 to $1,315. In other words, July’s overall gain in profitability was almost entirely fueled by baseball. 
+
+Even then, my trading in "Non-Baseball" categories seems to be more efficient! Referring back to the previous graph, June had ~360,000 contracts traded in "Non-Baseball" that resulted in $1,532 in profit (that’s about $0.0043 per contract.) July had ~203,000 contracts traded in "Non-Baseball" that resulted in $1,315 in profit (that’s about $0.0065 per contract.) Unrelated to baseball, but my overall trading seems to continue to improve.
+
+Coming back to the baseball markets, what about proving another key point of my previous narrative: eliminating unprofitable moments and focusing solely on consistently profitable moments?
+
+```{r}
+baseball_results <- Kalshi25July_arb %>%
+  filter(Category == "Baseball", month(Created_Parsed) %in% c(6, 7)) %>%
+  group_by(Month = ifelse(month(Created_Parsed) == 6, "July", "June"),
+           Ticker) %>% 
+  summarise(Total_Profit = sum(Realized_Profit_Clean, na.rm = TRUE), .groups = "drop") %>%
+  mutate(Result = ifelse(Total_Profit > 0, "Profitable", "Unprofitable")) %>%
+  count(Month, Result)
+
+ggplot(baseball_results, aes(x = Month, y = n, fill = Result)) +
+  geom_col(position = "dodge", width = 0.7) +
+  geom_text(aes(label = n), position = position_dodge(width = 0.7),
+            vjust = -0.3, size = 4) +
+  labs(
+    title = "Number of Profitable vs. Unprofitable Baseball Markets",
+    x = "Month",
+    y = "Count of Markets",
+    fill = "Outcome"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+<br>
+As the amount of profitable baseball markets is *up* and the amount of unprofitable baseball markets is *down* from June, I feel affirmed in my corrected trading strategy for the baseball markets.  
+
+To conclude this segment, here is a final synopsis of my changes in the baseball markets from June to July... using baseball cards:
+
+```{r}
+compute_baseball_stats <- function(df, month_num) {
+  df %>%
+    filter(Category == "Baseball", month(Created_Parsed) == month_num) %>%
+    group_by(Ticker) %>%
+    summarise(
+      Profit    = sum(Realized_Profit_Clean, na.rm = TRUE),
+      Contracts = sum(Contracts, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    summarise(
+      Markets         = n(),
+      Total_Contracts = sum(Contracts, na.rm = TRUE),
+      Total_Profit    = sum(Profit, na.rm = TRUE),
+      Home_Runs       = sum(Profit >= 100, na.rm = TRUE),
+      ProfitPerCtr    = ifelse(sum(Contracts, na.rm = TRUE) > 0,
+                               sum(Profit, na.rm = TRUE) / sum(Contracts, na.rm = TRUE), NA_real_)
+    )
+}
+
+`%||%` <- function(x, y) if (is.null(x) || is.na(x)) y else x
+
+make_card <- function(stats, title_text = "June 2025", primary = "#1a73e8", accent = "#0f9d58") {
+
+  Markets         <- stats$Markets %||% 0
+  Total_Contracts <- stats$Total_Contracts %||% 0
+  Total_Profit    <- stats$Total_Profit %||% 0
+  Home_Runs       <- stats$Home_Runs %||% 0
+  ProfitPerCtr    <- stats$ProfitPerCtr %||% NA_real_
+
+  fmt_ppc  <- if (is.na(ProfitPerCtr)) "—" else dollar(ProfitPerCtr, accuracy = 0.0001)
+  fmt_prof <- dollar(Total_Profit)
+  fmt_ctr  <- comma(Total_Contracts)
+
+  # wider canvas + separate label/value columns (no divider line)
+  xmin <- 0; xmax <- 7.2; ymin <- 0; ymax <- 9
+  label_x <- 0.8
+  value_x <- 6.6
+
+  ggplot() +
+    geom_rect(aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+              fill = "white", color = primary, linewidth = 1.5) +
+    geom_rect(aes(xmin = xmin, xmax = xmax, ymin = 7.6, ymax = 9),
+              fill = primary, color = primary) +
+    geom_rect(aes(xmin = xmin, xmax = xmax, ymin = 7.2, ymax = 7.6),
+              fill = accent, color = accent) +
+    annotate("text", x = (xmin+xmax)/2, y = 8.3, label = "BASEBALL MARKETS",
+             color = "white", fontface = "bold", size = 5.2) +
+    annotate("text", x = (xmin+xmax)/2, y = 7.35, label = title_text,
+             color = "white", fontface = "bold", size = 4.2) +
+
+    annotate("text", x = label_x, y = 5.6, label = "G (Markets):",
+             hjust = 0, color = "gray30", fontface = "bold", size = 3.6) +
+    annotate("text", x = label_x, y = 5.0, label = "AB (Contracts):",
+             hjust = 0, color = "gray30", fontface = "bold", size = 3.6) +
+    annotate("text", x = label_x, y = 4.4, label = "AVG ($ / Contract):",
+             hjust = 0, color = "gray30", fontface = "bold", size = 3.6) +
+    annotate("text", x = label_x, y = 3.8, label = "HR (≥ $100 Profit Mkts):",
+             hjust = 0, color = "gray30", fontface = "bold", size = 3.6) +
+    annotate("text", x = label_x, y = 3.2, label = "Total Profit:",
+             hjust = 0, color = "gray30", fontface = "bold", size = 3.6) +
+
+    annotate("text", x = value_x, y = 5.6, label = Markets,
+             hjust = 1, color = "black", size = 4.0) +
+    annotate("text", x = value_x, y = 5.0, label = fmt_ctr,
+             hjust = 1, color = "black", size = 4.0) +
+    annotate("text", x = value_x, y = 4.4, label = fmt_ppc,
+             hjust = 1, color = accent, fontface = "bold", size = 4.0) +
+    annotate("text", x = value_x, y = 3.8, label = Home_Runs,
+             hjust = 1, color = "black", size = 4.0) +
+    annotate("text", x = value_x, y = 3.2, label = fmt_prof,
+             hjust = 1, color = primary, fontface = "bold", size = 4.0) +
+
+    coord_cartesian(xlim = c(xmin, xmax), ylim = c(ymin, ymax), expand = FALSE) +
+    theme_void()
+}
+
+stats_june <- compute_baseball_stats(Kalshi25July_arb, 6)
+stats_july <- compute_baseball_stats(Kalshi25July_arb, 7)
+
+card_june <- make_card(stats_june, title_text = "June 2025", primary = "#1a73e8", accent = "#34a853")
+card_july <- make_card(stats_july, title_text = "July 2025", primary = "#ea4335", accent = "#fbbc05")
+
+card_june + card_july
+```
+  
+## Highs and Lows (Markets and Days)
+
+Still, my best month doesn't mean a flawless month. Let's overview the highs and lows of July. In the below calendar, you can hover over each date to see the overall profit, the best market, and the worst market on the day. Notably, as part of increased volume and profitability, comes higher numbers in *both* directions. Note that most days now involve triple-digit profit, but there are also multiple days with a triple-digit deficit.
+
+```{r}
+july_df <- Kalshi25July_arb %>%
+  mutate(Date = as.Date(Created_Parsed)) %>%
+  filter(month(Date) == 7)
+
+yr <- unique(year(july_df$Date))
+yr <- if (length(yr) == 1) yr else 2025
+
+first_day <- as.Date(sprintf("%d-07-01", yr))
+last_day  <- ceiling_date(first_day, "month") - days(1)
+all_days  <- tibble(Date = seq(first_day, last_day, by = "day"))
+
+# Daily profit (fill missing days with 0)
+daily <- july_df %>%
+  group_by(Date) %>%
+  summarise(Daily_Profit = sum(Realized_Profit_Clean, na.rm = TRUE), .groups = "drop") %>%
+  right_join(all_days, by = "Date") %>%
+  mutate(
+    Daily_Profit = replace_na(Daily_Profit, 0),
+    DayNum = day(Date),
+    WeekdayF = factor(
+      wday(Date, label = TRUE, abbr = TRUE, week_start = 1),
+      levels = c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")  # Sunday last
+    ),
+    offset  = wday(first_day, week_start = 1) - 1,
+    WeekRow = ((DayNum - 1 + offset) %/% 7) + 1
+  )
+
+# Best & worst market per day (Ticker-level) — do these outside summarise()
+by_ticker <- july_df %>%
+  group_by(Date, Ticker) %>%
+  summarise(PnL = sum(Realized_Profit_Clean, na.rm = TRUE), .groups = "drop")
+
+best <- by_ticker %>%
+  group_by(Date) %>%
+  slice_max(order_by = PnL, n = 1, with_ties = FALSE) %>%
+  transmute(Date, Best_Ticker = Ticker, Best_PnL = PnL)
+
+worst <- by_ticker %>%
+  group_by(Date) %>%
+  slice_min(order_by = PnL, n = 1, with_ties = FALSE) %>%
+  transmute(Date, Worst_Ticker = Ticker, Worst_PnL = PnL)
+
+plot_df <- daily %>%
+  left_join(best,  by = "Date") %>%
+  left_join(worst, by = "Date") %>%
+  mutate(
+    hover = paste0(
+      format(Date, "%a, %b %d, %Y"), "<br>",
+      "Profit: ", dollar(Daily_Profit), "<br>",
+      "Best: ", ifelse(is.na(Best_Ticker), "—", Best_Ticker),
+      ifelse(is.na(Best_PnL), "", paste0(" (", dollar(Best_PnL), ")")), "<br>",
+      "Worst: ", ifelse(is.na(Worst_Ticker), "—", Worst_Ticker),
+      ifelse(is.na(Worst_PnL), "", paste0(" (", dollar(Worst_PnL), ")"))
+    )
+  )
+
+# ----- Calendar-style heatmap (no week-of-month label) -----
+p <- ggplot(plot_df, aes(x = WeekdayF, y = WeekRow, fill = Daily_Profit, text = hover)) +
+  geom_tile(color = "white", linewidth = 0.8, width = 0.95, height = 0.9) +
+  geom_text(aes(label = DayNum), size = 3.8, fontface = "bold") +
+  scale_y_reverse(expand = expansion(mult = c(0.02, 0.02))) +
+  scale_fill_gradientn(
+    colors = c("#ff4e50", "#ffffff", "#3cb371"),                  # red → white → green
+    values = scales::rescale(c(-500, 0, 500)),                    # where those colors sit
+    limits = c(-500, 500),                                        # same as before
+    oob = scales::squish,
+    labels = scales::dollar_format(),
+    name = "Profit"
+  ) +
+  labs(title = "July Profit Calendar", x = NULL, y = NULL) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 16),
+    panel.grid = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(face = "bold")
+  )
+
+ggplotly(p, tooltip = "text") %>%
+  layout(legend = list(title = list(text = "Profit (USD)")))
+```
+<br>
+Something like this is important, because the bigger picture is hard to forget. I have to be OK with these days where I lose $100 (6th and 13th) because the larger calendar is mostly green. It's part of the risk and variance of trading.  
+
+Well, as I sign off, I hope I'll come back with further corrections for my baseball market trading strategy - and the numbers to back it up.
+
