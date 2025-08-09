@@ -374,7 +374,7 @@ Let there be some arbitrary moments in a baseball game **A**, **B**, **C**, **D*
 
 1. With strong return totals over time using this strategy, it's easy to incorrectly assume that each individual moment is profitable. Some moments might have made large amounts of money while others could have been break-even or outright losses. Looking at the final number obscures that nuance. There are many such ways this can be true. For example, let's say trading at **C** lost me $500 while **A** made me $500, **E** made me $700, and **F** made me $1,300. The overall P/L is $2,000, which can lead to me incorrectly believing that I've chosen the correct moments to trade at. However, **C** seems to be losing me money.
 
-2. There's even more nuance to be had; isolated profit from trading at a moment does not mean true long-term profitability from said moment. For example, let's say **A** has an extreme but rare downside risk. Something where **A** resolves to +$50 P/L 95% of the time, but resolves to -$1,000 P/L 5% of the time (this is way oversimplified and trades don't simply "resolve" like this, but it's for the sake of an argument.) The EV of trading at **A** is -$2.5, but if I only trade at moment **A** 10 times in a month, you will most likely not see a single one of those losses (~59%):  
+2. There's even more nuance to be had; isolated profit from trading at a moment does not mean true long-term profitability from said moment. For example, let's say **A** has an extreme but rare downside risk. Something where **A** resolves to +$50 P/L 95% of the time, but resolves to -$1,000 P/L 5% of the time (this is way oversimplified and trades don't simply "resolve" like this, but it's for the sake of an argument.) The EV of trading at **A** is -$2.5, but if I only trade at moment **A** 10 times in a month, you will most likely not see a single one of those losses (~60%):  
 
 $$
 P(\text{at least one loss}) = 1 - 0.95^{10} \approx 1 - 0.5987 = 0.4013
@@ -662,7 +662,7 @@ ggplotly(p, tooltip = "text") %>%
   layout(legend = list(title = list(text = "Profit (USD)")))
 ```
 <br>
-Something like this is important, because the bigger picture is hard to forget. I have to be OK with these days where I lose $100 (6th and 13th) because the larger calendar is mostly green. It's part of the risk and variance of trading.  
+Something like this is important, because the bigger picture is easy to forget. I have to be OK with these days where I lose $100 (6th and 13th, for example) because the larger calendar is mostly green. It's part of the risk and variance of trading.
 
 Well, as I sign off, I hope I'll come back with further corrections for my baseball market trading strategy - and the numbers to back it up.
 
