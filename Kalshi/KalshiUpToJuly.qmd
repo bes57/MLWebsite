@@ -664,5 +664,16 @@ ggplotly(p, tooltip = "text") %>%
 <br>
 Something like this is important, because the bigger picture is easy to forget. I have to be OK with these days where I lose $100 (6th and 13th, for example) because the larger calendar is mostly green. It's part of the risk and variance of trading.
 
-Well, as I sign off, I hope I'll come back with further corrections for my baseball market trading strategy - and the numbers to back it up.
+## Closing Thoughts
 
+As this summer comes to an end, there are two considerations that will scale down my future trading journal entries:  
+
+1\. I'm beginning to exhaust topics of conversation in these journal entries. Of course markets will change, my strategies will update, and I will have to alter my thinking which can lead to genuinely interesting, fresh discussions in this journal. However, I find that I've already touched the main things I wanted to look at with statistical analysis and I'm coming back to similar ideas. Instead of forcing new entries where I visualize my profit and trading frequencies again and again, I’d rather let ideas build naturally and write when there’s something truly worth unpacking. I'll (likely) still update monthly, but it'll probably be more standardized and brief.
+
+2\. I'll have less time to trade. I originally invested time into trading because, this May, I had free time at the end of each day and wanted a project to keep myself productive. That's not going to be the case anymore. With less time being put into trading, not only will I have smaller profits and fewer tradings stories, but I'll also spend less time thinking of strategies and developing my alpha. This evolution of my trading strategies and markets of interest has been a key driving factor in this journal, both as a topic of discussion and source of personal motivation.  
+
+With these two upcoming realities, I would expect that my journal entries will be appropriately adjusted. How, exactly, I'm not sure. This could refer to frequency, scale, or both.  
+
+Then again, I think this journal needs more line graphs to visualize my trading frequencies.  
+
+(That is a joke.)
