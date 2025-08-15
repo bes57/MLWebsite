@@ -306,7 +306,7 @@ Kalshi25July_arb %>%
   theme_minimal()
 ```
 
-Finally, the two months' cumulative trade counts overlaid on the same graph:
+We can see a much more consistent rate of trading. Finally, the two months' cumulative trade counts overlaid on the same graph:
 
 ```{r}
 june_data <- Kalshi25July_arb %>%
@@ -374,7 +374,7 @@ Let there be some arbitrary moments in a baseball game **A**, **B**, **C**, **D*
 
 1. With strong return totals over time using this strategy, it's easy to incorrectly assume that each individual moment is profitable. Some moments might have made large amounts of money while others could have been break-even or outright losses. Looking at the final number obscures that nuance. There are many such ways this can be true. For example, let's say trading at **C** lost me $500 while **A** made me $500, **E** made me $700, and **F** made me $1,300. The overall P/L is $2,000, which can lead to me incorrectly believing that I've chosen the correct moments to trade at. However, **C** seems to be losing me money.
 
-2. There's even more nuance to be had; isolated profit from trading at a moment does not mean true long-term profitability from said moment. For example, let's say **A** has an extreme but rare downside risk. Something where **A** resolves to +$50 P/L 95% of the time, but resolves to -$1,000 P/L 5% of the time (this is way oversimplified and trades don't simply "resolve" like this, but it's for the sake of an argument.) The EV of trading at **A** is -$2.5, but if I only trade at moment **A** 10 times in a month, you will most likely not see a single one of those losses (~60%):  
+2. There's nuance to be had; isolated profit from trading at a moment does not mean true long-term profitability from said moment. For example, let's say **A** has an extreme but rare downside risk. Something where **A** resolves to +$50 P/L 95% of the time, but resolves to -$1,000 P/L 5% of the time (this is way oversimplified and trades don't simply "resolve" like this, but it's for the sake of an argument.) The EV of trading at **A** is -$2.5, but if I only trade at moment **A** 10 times in a month, you will most likely not see a single one of those losses (~60%):  
 
 $$
 P(\text{at least one loss}) = 1 - 0.95^{10} \approx 1 - 0.5987 = 0.4013
@@ -576,7 +576,7 @@ card_june + card_july
   
 ## Highs and Lows (Markets and Days)
 
-Still, my best month doesn't mean a flawless month. Let's overview the highs and lows of July. In the below calendar, you can hover over each date to see the overall profit, the best market, and the worst market on the day. Notably, as part of increased volume and profitability, comes higher numbers in *both* directions. Note that most days now involve triple-digit profit, but there are also multiple days with a triple-digit deficit.
+Still, my best month doesn't mean a flawless month. Let's overview the highs and lows of July. In the below calendar, you can hover over each date to see the overall profit, the best market, and the worst market on the day. With increased volume comes higher numbers in *both* directions. Note that several days now involve triple-digit profit, but there are also multiple days with a triple-digit deficit.
 
 ```{r}
 july_df <- Kalshi25July_arb %>%
@@ -662,17 +662,17 @@ ggplotly(p, tooltip = "text") %>%
   layout(legend = list(title = list(text = "Profit (USD)")))
 ```
 <br>
-Something like this is important, because the bigger picture is easy to forget. I have to be OK with these days where I lose $100 (6th and 13th, for example) because the larger calendar is mostly green. It's part of the risk and variance of trading.
+Something like this is important, because the bigger picture is easy to forget. I have to be OK with these days where I lose $100+ (6th and 13th, for example) because the larger calendar is mostly green. It's part of the risk and variance of trading.
 
 ## Closing Thoughts
 
 As this summer comes to an end, there are two considerations that will scale down my future trading journal entries:  
 
-1\. I'm beginning to exhaust topics of conversation in these journal entries. Of course markets will change, my strategies will update, and I will have to alter my thinking which can lead to genuinely interesting, fresh discussions in this journal. However, I find that I've already touched the main things I wanted to look at with statistical analysis and I'm coming back to similar ideas. Instead of forcing new entries where I visualize my profit and trading frequencies again and again, I’d rather let ideas build naturally and write when there’s something truly worth unpacking. I'll (likely) still update monthly, but it'll probably be more standardized and brief.
+1\. I'm beginning to exhaust topics of conversation in these journal entries. Of course markets will change, my strategies will update, and I will have to alter my thinking which can lead to genuinely interesting, fresh discussions in this journal. However, I find that I've already touched the main things I wanted to look at with statistical analysis and I'm coming back to similar ideas. Instead of forcing new entries, I’d rather let ideas build naturally and write when there’s something truly worth unpacking. I'll (likely) still update monthly, but it'll probably be more standardized and brief.
 
-2\. I'll have less time to trade. I originally invested time into trading because, this May, I had free time at the end of each day and wanted a project to keep myself productive. That's not going to be the case anymore. With less time being put into trading, not only will I have smaller profits and fewer tradings stories, but I'll also spend less time thinking of strategies and developing my alpha. This evolution of my trading strategies and markets of interest has been a key driving factor in this journal, both as a topic of discussion and source of personal motivation.  
+2\. I'll have less time to trade. I originally invested time into trading because, this May, I had free time at the end of each day and wanted a project to keep myself productive. That was largely the case for the rest of this summer, but that's not going to be the case anymore. With less time being put into trading, not only will I have smaller profits and fewer tradings stories, but I'll also spend less time thinking of strategies and developing my alpha. This evolution of my trading strategies and markets of interest has been a key driving factor in this journal, both as a topic of discussion and a source of personal motivation.  
 
-With these two upcoming realities, I would expect that my journal entries will be appropriately adjusted. How, exactly, I'm not sure. This could refer to frequency, scale, or both.  
+With these two upcoming realities, I would expect that my journal entries will be appropriately adjusted. How, exactly, I'm not sure. This could refer to frequency, scale, or both.
 
 Then again, I think this journal needs more line graphs to visualize my trading frequencies.  
 
