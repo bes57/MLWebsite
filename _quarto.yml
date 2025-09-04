@@ -33,6 +33,8 @@ website:
             text: Trading (June)
           - href: Kalshi/KalshiUpToJuly.qmd
             text: Trading (July)
+          - href: Kalshi/KalshiMorality.qmd
+            text: Kalshi's Morality
       - text: Jazz Progression LLM
         menu:
           - href: Jazz Generation/JazzGenerationOutline.qmd
