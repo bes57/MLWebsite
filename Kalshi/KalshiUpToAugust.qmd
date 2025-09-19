@@ -1,0 +1,827 @@
+---
+title: "Kalshi Analysis 2025 (Updated August)"
+author: "Benjamin Sherman"
+format:
+  html:
+    code-fold: true
+    code-summary: "Show code"
+    code-tools: true 
+    embed-resources: true
+
+knitr:
+  opts_chunk:        ########## set global options ############
+    collapse: true   # keep code from blocks together (if shown)
+    message: true    # show messages
+    warning: false    # show warnings
+    error: false      # show error messages
+    comment: ""      # don't show ## with printed output
+    dpi: 300         # image resolution (typically 300 for publication)
+    fig-width: 6.5   # figure width
+    fig-height: 4.0  # figure height
+    R.options:    
+      digits: 3    # round to three digits
+
+---
+## Introduction
+
+After some thought, it seemed best for this to be the final entry, capping this journal off as a summer-long affair. This is because, as I will get into: 
+
+1\. I've accomplished the goals I set for myself.  
+
+2\. This journal now shows a story arc that, while not complete, highlights reasonable progression and growth.  
+
+3\. I started trading and created this journal as a result of having free time in the summer, and it's no longer summer. 
+
+It's not like I won't be trading anymore nor that I won't have any new goals, but I won't have the same amount of time to be trading, coding, and writing as I had over the summer. Without anymore jibber-jabber, let's look at where I've ended up.
+
+## Basic Statistics
+
+#### *View below code to see library loading*
+```{r}
+#| label: library
+#install.packages("kableExtra")
+suppressPackageStartupMessages(library(tidymodels))
+tidymodels_prefer()
+suppressPackageStartupMessages(library(tidyverse))
+library(ggrepel)
+library(glue)
+library(patchwork)
+library(shiny)
+library(plotly)
+library(forcats)
+library(lubridate)
+library(kableExtra)
+library(glue)
+library(rUM)
+library(rio)
+library(table1)
+library(knitr)
+library(gt)
+library(broom)
+library(stringr)
+library(conflicted)
+library(RColorBrewer)
+library(scales)
+conflicted::conflicts_prefer(plotly::layout)
+```
+
+#### *View below code to see dataset loading/cleaning* 
+
+```{r}
+clean_dollar <- function(x) {
+  x <- gsub("[^0-9.-]", "", x)  
+  as.numeric(x)
+}
+
+Kalshi25August <- read.csv("KalshiAugust25.csv", stringsAsFactors = FALSE)
+
+Kalshi25August$Created_Clean <- gsub(" at ", " ", Kalshi25August$Created)
+Kalshi25August$Created_Clean <- gsub(" EST", "", Kalshi25August$Created_Clean)
+Kalshi25August$Created_Parsed <- parse_date_time(Kalshi25August$Created_Clean, orders = "b d, Y I:Mp")
+
+Kalshi25August$Month <- format(Kalshi25August$Created_Parsed, "%B")
+Kalshi25August$DayOfWeek <- weekdays(Kalshi25August$Created_Parsed) 
+Kalshi25August$Hour <- hour(Kalshi25August$Created_Parsed)              
+
+Kalshi25August <- Kalshi25August |> select(-Created)
+
+Kalshi25August$Realized_Profit_Clean   <- clean_dollar(Kalshi25August$Realized_Profit)
+Kalshi25August$Realized_Revenue_Clean <- clean_dollar(Kalshi25August$Realized_Revenue)
+Kalshi25August$Realized_Cost_Clean    <- clean_dollar(Kalshi25August$Realized_Cost)
+Kalshi25August$Fees_Clean             <- clean_dollar(Kalshi25August$Fees)
+Kalshi25August$Contracts              <- as.numeric(Kalshi25August$Contracts)
+
+baseball_df <- Kalshi25August %>%
+  filter(str_starts(Ticker, "KXMLBGAME")) %>%
+  filter(!is.na(Realized_Profit_Clean), Contracts > 0) %>%
+  mutate(GameID = str_replace(Ticker, "-[^-]+$", ""))
+
+baseball_summary <- baseball_df %>%
+  group_by(GameID) %>%
+  summarise(
+    Realized_Profit_Clean   = sum(Realized_Profit_Clean, na.rm = TRUE),
+    Realized_Revenue_Clean  = sum(Realized_Revenue_Clean, na.rm = TRUE),
+    Realized_Cost_Clean     = sum(Realized_Cost_Clean, na.rm = TRUE),
+    Fees_Clean              = sum(Fees_Clean, na.rm = TRUE),
+    Contracts               = sum(Contracts, na.rm = TRUE),
+    Created_Parsed          = min(Created_Parsed, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+baseball_metadata <- baseball_df %>%
+  group_by(GameID) %>%
+  slice(1) %>%
+  ungroup() %>%
+  select(-Realized_Profit_Clean, -Realized_Revenue_Clean, -Realized_Cost_Clean, -Fees_Clean, -Contracts, -Created_Parsed)
+
+baseball_collapsed <- left_join(baseball_summary, baseball_metadata, by = "GameID") %>%
+  mutate(Ticker = GameID) %>%
+  select(-GameID)
+
+non_baseball_df <- Kalshi25August %>%
+  filter(!str_starts(Ticker, "KXMLBGAME"))
+
+Kalshi25August_arb <- bind_rows(non_baseball_df, baseball_collapsed)
+
+# WNBA Arbitrages
+womensbball <- Kalshi25August_arb %>%
+  filter(str_starts(Ticker, "KXWNBAGAME")) %>%
+  filter(!is.na(Realized_Profit_Clean)) %>%
+  mutate(
+    GameID = str_replace(Ticker, "-[^-]+$", ""),
+    Contracts = as.numeric(Contracts)
+  )
+
+womensbball_collapsed <- womensbball %>%
+  group_by(GameID) %>%
+  summarise(
+    Ticker                 = first(GameID),
+    Realized_Profit_Clean = sum(Realized_Profit_Clean, na.rm = TRUE),
+    Realized_Revenue_Clean = sum(Realized_Revenue_Clean, na.rm = TRUE),
+    Realized_Cost_Clean    = sum(Realized_Cost_Clean, na.rm = TRUE),
+    Fees_Clean             = sum(Fees_Clean, na.rm = TRUE),
+    Contracts              = sum(Contracts, na.rm = TRUE),
+    Created_Parsed         = min(Created_Parsed, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+non_womensbball <- Kalshi25August_arb %>%
+  filter(!str_starts(Ticker, "KXWNBAGAME"))
+
+Kalshi25August_arb <- bind_rows(non_womensbball, womensbball_collapsed) %>%
+  arrange(desc(Created_Parsed))
+
+# UFC Arbitrages
+ufc <- Kalshi25August_arb %>%
+  filter(str_starts(Ticker, "KXUFCFIGHT")) %>%
+  filter(!is.na(Realized_Profit_Clean)) %>%
+  mutate(
+    GameID = str_replace(Ticker, "-[^-]+$", ""),
+    Contracts = as.numeric(Contracts)
+  )
+
+ufc_collapsed <- ufc %>%
+  group_by(GameID) %>%
+  summarise(
+    Ticker                 = first(GameID),
+    Realized_Profit_Clean = sum(Realized_Profit_Clean, na.rm = TRUE),
+    Realized_Revenue_Clean = sum(Realized_Revenue_Clean, na.rm = TRUE),
+    Realized_Cost_Clean    = sum(Realized_Cost_Clean, na.rm = TRUE),
+    Fees_Clean             = sum(Fees_Clean, na.rm = TRUE),
+    Contracts              = sum(Contracts, na.rm = TRUE),
+    Created_Parsed         = min(Created_Parsed, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+non_ufc <- Kalshi25August_arb %>%
+  filter(!str_starts(Ticker, "KXUFCFIGHT"))
+
+Kalshi25August_arb <- bind_rows(non_ufc, ufc_collapsed) %>%
+  arrange(desc(Created_Parsed))
+
+# NCAA MBB Arbitrages
+ncaa_mbb <- Kalshi25August_arb %>%
+  filter(str_starts(Ticker, "KXNCAAMBACHAMP")) %>%
+  filter(!is.na(Realized_Profit_Clean)) %>%
+  mutate(
+    GameID = str_replace(Ticker, "-[^-]+$", ""),
+    Contracts = as.numeric(Contracts)
+  )
+
+ncaa_mbb_collapsed <- ncaa_mbb %>%
+  group_by(GameID) %>%
+  summarise(
+    Ticker                 = first(GameID),
+    Realized_Profit_Clean = sum(Realized_Profit_Clean, na.rm = TRUE),
+    Realized_Revenue_Clean = sum(Realized_Revenue_Clean, na.rm = TRUE),
+    Realized_Cost_Clean    = sum(Realized_Cost_Clean, na.rm = TRUE),
+    Fees_Clean             = sum(Fees_Clean, na.rm = TRUE),
+    Contracts              = sum(Contracts, na.rm = TRUE),
+    Created_Parsed         = min(Created_Parsed, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+non_ncaa_mbb <- Kalshi25August_arb %>%
+  filter(!str_starts(Ticker, "KXNCAAMBACHAMP"))
+
+Kalshi25August_arb <- bind_rows(non_ncaa_mbb, ncaa_mbb_collapsed) %>%
+  arrange(desc(Created_Parsed))
+
+# NFL GAME arbitrages
+nfl_game <- Kalshi25August_arb %>%
+  filter(str_starts(Ticker, "KXNFLGAME")) %>%
+  filter(!is.na(Realized_Profit_Clean)) %>%
+  mutate(
+    GameID = str_replace(Ticker, "-[^-]+$", ""),
+    Contracts = as.numeric(Contracts)
+  )
+
+nfl_game_collapsed <- nfl_game %>%
+  group_by(GameID) %>%
+  summarise(
+    Ticker                  = first(GameID),
+    Realized_Profit_Clean   = sum(Realized_Profit_Clean, na.rm = TRUE),
+    Realized_Revenue_Clean  = sum(Realized_Revenue_Clean, na.rm = TRUE),
+    Realized_Cost_Clean     = sum(Realized_Cost_Clean, na.rm = TRUE),
+    Fees_Clean              = sum(Fees_Clean, na.rm = TRUE),
+    Contracts               = sum(Contracts, na.rm = TRUE),
+    Created_Parsed          = min(Created_Parsed, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+non_nfl_game <- Kalshi25August_arb %>%
+  filter(!str_starts(Ticker, "KXNFLGAME"))
+
+Kalshi25August_arb <- bind_rows(non_nfl_game, nfl_game_collapsed) %>%
+  arrange(desc(Created_Parsed))
+
+# College Football (NCAA) GAME arbitrages
+cfb_game <- Kalshi25August_arb %>%
+  filter(str_starts(Ticker, "KXNCAAFGAME")) %>%
+  filter(!is.na(Realized_Profit_Clean)) %>%
+  mutate(
+    GameID = str_replace(Ticker, "-[^-]+$", ""),
+    Contracts = as.numeric(Contracts)
+  )
+
+cfb_game_collapsed <- cfb_game %>%
+  group_by(GameID) %>%
+  summarise(
+    Ticker                  = first(GameID),
+    Realized_Profit_Clean   = sum(Realized_Profit_Clean, na.rm = TRUE),
+    Realized_Revenue_Clean  = sum(Realized_Revenue_Clean, na.rm = TRUE),
+    Realized_Cost_Clean     = sum(Realized_Cost_Clean, na.rm = TRUE),
+    Fees_Clean              = sum(Fees_Clean, na.rm = TRUE),
+    Contracts               = sum(Contracts, na.rm = TRUE),
+    Created_Parsed          = min(Created_Parsed, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+non_cfb_game <- Kalshi25August_arb %>%
+  filter(!str_starts(Ticker, "KXNCAAFGAME"))
+
+Kalshi25August_arb <- bind_rows(non_cfb_game, cfb_game_collapsed) %>%
+  arrange(desc(Created_Parsed))
+
+# ATP MATCH arbitrages
+atp_match <- Kalshi25August_arb %>%
+  filter(str_starts(Ticker, "KXATPMATCH")) %>%
+  filter(!is.na(Realized_Profit_Clean)) %>%
+  mutate(
+    GameID = str_replace(Ticker, "-[^-]+$", ""),   # drop last leg (e.g., -MED / -BON / -DJO / -FRI)
+    Contracts = as.numeric(Contracts)
+  )
+
+atp_match_collapsed <- atp_match %>%
+  group_by(GameID) %>%
+  summarise(
+    Ticker                  = first(GameID),
+    Realized_Profit_Clean   = sum(Realized_Profit_Clean, na.rm = TRUE),
+    Realized_Revenue_Clean  = sum(Realized_Revenue_Clean, na.rm = TRUE),
+    Realized_Cost_Clean     = sum(Realized_Cost_Clean, na.rm = TRUE),
+    Fees_Clean              = sum(Fees_Clean, na.rm = TRUE),
+    Contracts               = sum(Contracts, na.rm = TRUE),
+    Created_Parsed          = min(Created_Parsed, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+non_atp_match <- Kalshi25August_arb %>%
+  filter(!str_starts(Ticker, "KXATPMATCH"))
+
+Kalshi25August_arb <- bind_rows(non_atp_match, atp_match_collapsed) %>%
+  arrange(desc(Created_Parsed))
+
+# MLB all-star arbitrages
+mlbas_game <- Kalshi25August_arb %>%
+  filter(str_starts(Ticker, "KXMLBASGAME")) %>%
+  filter(!is.na(Realized_Profit_Clean)) %>%
+  mutate(
+    GameID = str_replace(Ticker, "-[^-]+$", ""),   # drop last leg (e.g., -AL / -NL)
+    Contracts = as.numeric(Contracts)
+  )
+
+mlbas_game_collapsed <- mlbas_game %>%
+  group_by(GameID) %>%
+  summarise(
+    Ticker                  = first(GameID),
+    Realized_Profit_Clean   = sum(Realized_Profit_Clean, na.rm = TRUE),
+    Realized_Revenue_Clean  = sum(Realized_Revenue_Clean, na.rm = TRUE),
+    Realized_Cost_Clean     = sum(Realized_Cost_Clean, na.rm = TRUE),
+    Fees_Clean              = sum(Fees_Clean, na.rm = TRUE),
+    Contracts               = sum(Contracts, na.rm = TRUE),
+    Created_Parsed          = min(Created_Parsed, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+non_mlbas_game <- Kalshi25August_arb %>%
+  filter(!str_starts(Ticker, "KXMLBASGAME"))
+
+Kalshi25August_arb <- bind_rows(non_mlbas_game, mlbas_game_collapsed) %>%
+  arrange(desc(Created_Parsed))
+
+# MLB hr derby arbitrages
+mlbhr <- Kalshi25August_arb %>%
+  filter(str_starts(Ticker, "KXMLBHRDERBY")) %>%   # e.g., KXMLBHRDERBY-25-JCAM vs -CRAL
+  filter(!is.na(Realized_Profit_Clean)) %>%
+  mutate(
+    GameID = str_replace(Ticker, "-[^-]+$", ""),   # drop last leg (player)
+    Contracts = as.numeric(Contracts)
+  )
+
+mlbhr_collapsed <- mlbhr %>%
+  group_by(GameID) %>%
+  summarise(
+    Ticker                  = first(GameID),
+    Realized_Profit_Clean   = sum(Realized_Profit_Clean, na.rm = TRUE),
+    Realized_Revenue_Clean  = sum(Realized_Revenue_Clean, na.rm = TRUE),
+    Realized_Cost_Clean     = sum(Realized_Cost_Clean, na.rm = TRUE),
+    Fees_Clean              = sum(Fees_Clean, na.rm = TRUE),
+    Contracts               = sum(Contracts, na.rm = TRUE),
+    Created_Parsed          = min(Created_Parsed, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+non_mlbhr <- Kalshi25August_arb %>%
+  filter(!str_starts(Ticker, "KXMLBHRDERBY"))
+
+Kalshi25August_arb <- bind_rows(non_mlbhr, mlbhr_collapsed) %>%
+  arrange(desc(Created_Parsed))
+
+
+
+# Categorize Kalshi25August_arb markets into logical buckets
+Kalshi25August_arb <- Kalshi25August_arb %>% 
+  mutate(
+    Category = case_when(
+      str_detect(Ticker, regex("^(KXMLBGAME|MLBGAME|KXMLBHR|KXMLBAS)", ignore_case = TRUE))        ~ "Baseball",
+      str_detect(Ticker, regex("^(KXNBAGAME|KXNBASERIES|KXNBA|KXNBADRAFT)", ignore_case = TRUE))   ~ "Basketball",
+      str_detect(Ticker, regex("^(KXWNBAGAME|WNBA)", ignore_case = TRUE))         ~ "Women's Basketball",
+      str_detect(Ticker, regex("^(KXNHLGAME|KXNHL)", ignore_case = TRUE))         ~ "Hockey",
+      str_detect(Ticker, regex("^(UFC|KXUFC)", ignore_case = TRUE))                       ~ "UFC",
+      str_detect(Ticker, regex("(MARMAD|NCAAMB)", ignore_case = TRUE))            ~ "College Basketball",
+      str_detect(Ticker, regex("(WMARMAD|NCAAWB)", ignore_case = TRUE))           ~ "Women’s College Basketball",
+      str_detect(Ticker, regex("(KXMASTERS|PGA(TOUR)?|USOPEN|LIVTOUR|KXTHEOPEN)", ignore_case = TRUE)) ~ "Golf",
+      str_detect(Ticker, regex("(WIMBLEDON|FOMENSINGLES|FOWOMENSINGLES)", ignore_case = TRUE)) ~ "Tennis",
+      str_detect(Ticker, regex("(BITCOIN|BTC)", ignore_case = TRUE))              ~ "Crypto",
+      str_detect(Ticker, regex("(MENTION|KXTRUMP)", ignore_case = TRUE))                    ~ "Mention Markets",
+      str_detect(Ticker, regex("(VALORANT|VCT|AUSTINMAJOR|CS2?|ESPORT)", ignore_case = TRUE)) ~ "Esports",
+      str_detect(Ticker, regex("^(KXMAYOR)", ignore_case = TRUE))        ~ "Politics",
+      str_detect(Ticker, regex("^(KXAPP)", ignore_case = TRUE))        ~ "App Ranking",
+      str_detect(Ticker, regex("^(KXF1)", ignore_case = TRUE))        ~ "F1",
+      str_detect(Ticker, regex("^(KXTOPALBUM)", ignore_case = TRUE))        ~ "Music",
+      str_detect(Ticker, regex("^(KXNFLGAME|KXNCAAFGAME)", ignore_case = TRUE)) ~ "Football",
+
+      TRUE ~ "Other"
+    )
+  )
+```
+
+#### As always, let's start with my profit thus far in 2025:
+
+```{r}
+total_realized_profit <- sum(Kalshi25August_arb$Realized_Profit_Clean, na.rm = TRUE)
+
+
+data.frame(Total_Realized_Profit = dollar(total_realized_profit)) |>
+  kable(caption = "", align = "c") |>
+  kable_styling(full_width = FALSE)
+```
+<br>
+The 20k line has been crossed, which is great! I'm less so excited about the total amount of money I've made, and more so about the rate at which I'm making money.  
+
+In my first month of this journal, May, I made:  
+```{r}
+may_profit <- Kalshi25August_arb %>%
+  filter(month(Created_Parsed) == 5) %>%
+  summarise(Total_May_Profit = sum(Realized_Profit_Clean, na.rm = TRUE))
+
+may_profit %>%
+  mutate(Total_May_Profit = dollar(Total_May_Profit)) %>%
+  kable(caption = "Profit in May", align = "c") %>%
+  kable_styling(full_width = FALSE)
+```
+<br>
+Now, in August, I've made:  
+```{r}
+august_profit <- Kalshi25August_arb %>%
+  filter(month(Created_Parsed) == 8) %>%
+  summarise(Total_August_Profit = sum(Realized_Profit_Clean, na.rm = TRUE))
+
+august_profit %>%
+  mutate(Total_August_Profit = dollar(Total_August_Profit)) %>%
+  kable(caption = "Profit in August", align = "c") %>%
+  kable_styling(full_width = FALSE)
+```
+<br>
+That's a bit more than a 2.5x increase. Why I'm proud of this, exactly, is that it proves to myself that I have the discipline to improve at a skill if I focus my energy - this number serving as a tangible measure of that fact. It's one thing to be able to pick up a skill, but it's another to be able to refine a skill and improve over a larger period of time.
+
+Still, the money is nice. Extrapolated onto an entire year, this would imply a yearly salary of $99,970. Or, if you'll allow me to round up, $100,000. An implied annual salary of 6 figures for a side project is pretty great (though this doesn't factor in taxes.) However, I don't think I'll be able to keep up this rate - not just because of my time, but also because uncertainty is certain. As I'm writing this entry, a new wave of fees have hit Kalshi which are going to significantly dock my profit margin. There are other things that could wipe my profit margin in an instant:  
+
+- What if my preferred markets become (even more) heavily botted?
+- What if Kalshi simply becomes less popular, with liquidity decreasing?
+- What if fees increase again?
+- What if Kalshi's legal status and security were to change?
+
+It's things like this which make it impossible to predict the future on Kalshi. The only thing I can do is be cautious and understand that projections are pointless (including the annual salary statement I just made.) Because prediction markets are such a young phenomenon, nothing is promised regarding trading conditions.
+
+But that doesn't mean I can't celebrate the present. With that, I'd like to come back to this earlier statement on accomplishing the goals I set for myself. 
+
+## Looking Back at My Goals for Summer 25
+
+In retrospect, I should've written my goals in an earlier journal entry, but alas. All I can do is write them now:  
+
+#### 1\. Hit 10k in profit.
+
+Well, I already showed that previously. Not only did I break 10k, but I hit 10k *last* month on top of the fact that I doubled my goal.  
+
+#### 2\. Make 1k in a single day.  
+
+Now we're getting into the remaining goals that I accomplished this past month, allowing me to conclude this journal. As you'll see, I barely got it done this August, checking that box on the second-to-last day of the month:  
+```{r}
+top5_days <- Kalshi25August_arb %>%
+  mutate(Date = as.Date(Created_Parsed)) %>%                  # collapse to calendar day
+  group_by(Date) %>%
+  summarise(Daily_Profit = sum(Realized_Profit_Clean, na.rm = TRUE), .groups = "drop") %>%
+  arrange(desc(Daily_Profit), Date) %>%                       # sort by profit (and date for ties)
+  slice_head(n = 5)
+
+top5_days %>%
+  mutate(
+    Date = format(Date, "%B %d, %Y"),                         # nicer date format
+    Daily_Profit = dollar(Daily_Profit)                       # clean formatting
+  ) %>%
+  kable(caption = "Top 5 Most Profitable Days", align = "c") %>%
+  kable_styling(full_width = FALSE)
+```
+<br>
+Also of note is the fact that 4 out of the 5 most profitable days come from this August. Again, more proof that things keep getting better as time passes.  
+
+#### 3\. Make 1k in a single market.  
+
+At first, it may seem that **goal 3** makes it a bit unnecessary to have **goal 2**, because it seems that if I reach $1k in a single market I, ipso facto, reach $1k in a single day. However, some markets (like golf tournaments) span multiple days. I digress, though. Let's see the proof!
+```{r}
+top_wins_no_arb <- Kalshi25August_arb |>
+  arrange(desc(Realized_Profit_Clean)) |>
+  slice_head(n = 5)
+
+
+top_wins_no_arb |>
+  select(Date = Created_Parsed, Profit = Realized_Profit_Clean, Ticker) |>
+  mutate(
+    Date = format(Date, "%b %d, %Y %I:%M %p"),
+    Profit = dollar(Profit)
+  ) |>
+  kable(caption = "Top 5 Markets", align = "c") |>
+  kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover", "condensed"))
+```
+<br>
+Not only does this provide proof, but it also provides insight into why August has been so exceptional, namely the introduction of football markets.  
+
+In August, there were only four days with football markets. Despite that, they managed to make up 3 out of my 5 most profitable all-time markets, including my first $1,000+ market. Because football markets were just added this August, they were wildly inefficient - trading firms were still figuring out how to create effective bots to tighten the spreads - and as such I was able to profit immensely. Unfortunately, this won't continue in the future as the football markets increase in efficiency.
+
+Frankly, it's quite bizarre. The match I was able to make $1,000+ on was between **North Dakota** and **Kansas State**. For those who don't know much about college football, don't worry if those teams mean nothing to you - those teams mean nothing to people who follow college football. Jokes aside, for such unpopular college football programs, it's shocking that the game's market was as profitable and liquid as it was. My speculation is there was high liquidity since everyone was excited to see football markets for the first time, but the irrelevance of the game alongside football markets' recent inception meant it was poorly botted.
+
+#### In four days of college football markets, let's see where football ranks in my all-time profit based on category:
+
+```{r}
+cat_profit <- Kalshi25August_arb %>%
+  group_by(Category) %>%
+  summarise(
+    Total_Profit = sum(Realized_Profit_Clean, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(Total_Profit)) %>%
+  slice_head(n = 5) %>% 
+  mutate(
+    Rank  = row_number(),
+    Share = Total_Profit / sum(Total_Profit, na.rm = TRUE)
+  ) %>%
+  select(Rank, Category, Total_Profit)
+
+cat_profit %>%
+  mutate(
+    Total_Profit = scales::dollar(Total_Profit)
+  ) %>%
+  knitr::kable(caption = "Profit by Category (Ranked Top 5)", align = "c") %>%
+  kableExtra::kable_styling(
+    full_width = FALSE,
+    bootstrap_options = c("striped", "hover", "condensed")
+  )
+```
+<br>
+Welp, bully for football. Four days to be my second most profitable category.  
+
+## Larger Picture for Summer 25  
+
+As I end this journal, I'd like to revisit some of the expository data visualization and analysis I did in my first journal entry, but this time with my entire summer's data. Without further ado, let's begin!  
+
+#### First, let's see the line graph of my cumulative profit this summer.
+
+```{r}
+daily_profit <- Kalshi25August_arb %>%
+  mutate(SessionDate = as.Date(Created_Parsed - lubridate::hours(8))) %>%
+  filter(SessionDate >= as.Date("2025-05-01"),
+         SessionDate <= as.Date("2025-09-01")) %>%
+  group_by(SessionDate) %>%
+  summarise(Daily_Profit = sum(Realized_Profit_Clean, na.rm = TRUE), .groups = "drop") %>%
+  arrange(SessionDate) %>%
+  mutate(Cumulative_Profit = cumsum(Daily_Profit))
+
+weekly_profit <- daily_profit %>%
+  mutate(WeekStart = lubridate::floor_date(SessionDate, unit = "week", week_start = 1)) %>%
+  group_by(WeekStart) %>%
+  summarise(Weekly_Profit = sum(Daily_Profit, na.rm = TRUE),
+            WeekEnd       = max(SessionDate),
+            .groups = "drop")
+
+best_week  <- weekly_profit %>% slice_max(Weekly_Profit, n = 1)
+worst_week <- weekly_profit %>% slice_min(Weekly_Profit, n = 1)
+
+plot_min <- min(daily_profit$SessionDate)
+plot_max <- max(daily_profit$SessionDate)
+
+spans <- bind_rows(
+  best_week  %>% mutate(LabelType = "Best"),
+  worst_week %>% mutate(LabelType = "Worst")
+) %>%
+  transmute(
+    LabelType,
+    xmin = pmax(WeekStart, plot_min),
+    xmax = pmin(WeekEnd,   plot_max),
+    Weekly_Profit
+  )
+
+span_labels <- spans %>%
+  mutate(
+    xmid  = xmin + (xmax - xmin) / 2,
+    label = ifelse(Weekly_Profit >= 0,
+                   paste0("+", scales::dollar(Weekly_Profit)),
+                   scales::dollar(Weekly_Profit))
+  )
+
+y_min <- min(daily_profit$Cumulative_Profit, na.rm = TRUE)
+y_max <- max(daily_profit$Cumulative_Profit, na.rm = TRUE)
+span_labels$ypos <- (y_min + y_max) / 2 
+
+ggplot(daily_profit, aes(SessionDate, Cumulative_Profit)) +
+  geom_rect(data = spans,
+            aes(xmin = xmin, xmax = xmax, ymin = -Inf, ymax = Inf, fill = LabelType),
+            inherit.aes = FALSE, alpha = 0.12, show.legend = FALSE) +
+  geom_vline(data = spans, aes(xintercept = xmin, color = LabelType),
+             linetype = "dotted", linewidth = 0.6, show.legend = FALSE) +
+  geom_vline(data = spans, aes(xintercept = xmax, color = LabelType),
+             linetype = "dotted", linewidth = 0.6, show.legend = FALSE) +
+  geom_line(size = 1) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  geom_text(data = span_labels,
+            aes(x = xmid, y = ypos, label = label, color = LabelType),
+            inherit.aes = FALSE, fontface = "bold", size = 4.5, show.legend = FALSE) +
+  scale_fill_manual(values = c(Best = "darkgreen", Worst = "red"), guide = "none") +
+  scale_color_manual(values = c(Best = "darkgreen", Worst = "red"), guide = "none") +
+  labs(
+    title = "Cumulative Profit Over Time (Summer 2025)",
+    subtitle = "Shaded Bands Show the Best and Worst Weeks",
+    x = "Date",
+    y = "Cumulative Profit"
+  ) +
+  theme_minimal()
+```
+
+#### How about my baseball market profit distributions as months passed?  
+*Note: the dashed vertical line indicates the mean profit per market in the individual month* 
+
+```{r, fig.width=10, fig.height=20}
+#| fig.width: 8 
+#| fig.asp: 2.2 
+#| out.width: 100% 
+#| fig.align: center
+#| dev: ragg_png  
+#| dpi: 150
+
+baseball_markets <- Kalshi25August_arb %>%
+  filter(Category == "Baseball",
+         !is.na(Realized_Profit_Clean),
+         !is.na(Created_Parsed)) %>%
+  mutate(
+    Month = factor(format(Created_Parsed, "%B"),
+                   levels = c("May","June","July","August"))
+  ) %>%
+  filter(Month %in% c("May","June","July","August")) %>%
+  group_by(Month, Market = Ticker) %>%
+  summarise(Market_Profit = sum(Realized_Profit_Clean, na.rm = TRUE),
+            .groups = "drop")
+
+max_abs <- 100
+binw    <- 5
+xbks    <- seq(-max_abs, max_abs, by = binw)
+
+dens_overlay <- baseball_markets %>%
+  group_by(Month) %>%
+  reframe({
+    d <- density(Market_Profit, from = -max_abs, to =  max_abs, n = 512)
+    n  <- length(Market_Profit)
+    tibble(x = d$x, y = d$y * n * binw)
+  })
+
+month_means <- baseball_markets %>%
+  group_by(Month) %>%
+  summarise(mu = mean(Market_Profit, na.rm = TRUE), .groups = "drop")
+
+bin_df <- baseball_markets %>%
+  mutate(bin = cut(Market_Profit, breaks = xbks, include.lowest = TRUE, right = FALSE)) %>%
+  count(Month, bin)
+
+y_max <- max(bin_df$n, na.rm = TRUE)
+
+ggplot(baseball_markets, aes(x = Market_Profit)) +
+  geom_histogram(
+    breaks = xbks,
+    color  = "white",
+    fill   = "purple"
+  ) +
+  geom_line(
+    data = dens_overlay,
+    aes(x = x, y = y),
+    linewidth = 1,
+    color = "darkblue",
+    inherit.aes = FALSE
+  ) +
+  geom_vline(
+    data = month_means,
+    aes(xintercept = mu),
+    linetype = "dashed",
+    linewidth = 0.7,
+    color = "gray30"
+  ) +
+ coord_cartesian(xlim = c(-max_abs, max_abs)) +
+  facet_wrap(~ Month, ncol = 1) +
+  scale_y_continuous(limits = c(0, y_max * 1.05),
+                     expand = expansion(mult = c(0, .03))) +
+  labs(
+    title = "Profit Distribution for Baseball Markets by Month",
+    x = "Profit per Market (USD)",
+    y = "Frequency"
+  ) +
+  theme_light(base_size = 12) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    strip.text = element_text(face = "bold", size = 14),
+    panel.grid.minor = element_blank()
+  )
+```
+
+There are interesting trends to notice:
+
+1\. The mean slowly shifting upwards as month pass, showing improved trading strategies.  
+
+2\. As part of my improved strategy, I reduced the risk I was onloading, which is evidenced by looking at the left tail of the distributions. You can see there are fewer and fewer large losses as months pass. For example, June has multiple instances in the -50/-100 range while July and August have only one small column each.  
+
+3\. Despite changing strategies over time, I still consistently end up with plenty of (more or less) break-even markets.  
+
+#### What about my total fees paid?  
+
+```{r}
+Kalshi25August_arb$Fees_Clean <- as.numeric(gsub("[\\$,]", "", Kalshi25August_arb$Fees))
+total_fees <- sum(Kalshi25August_arb$Fees_Clean, na.rm = TRUE)
+
+data.frame(Total_Fees = dollar(total_fees)) %>%
+  kable(caption = "", align = "c") %>%
+  kable_styling(full_width = FALSE)
+```
+<br>
+In May, I was shocked to see a four-figure number. Now, while this seems like a lot, I have no problem with it given the profit I've been able to net.  
+
+#### What about the most money I've moved in a day?  
+
+```{r}
+
+max_spend_day <- Kalshi25August_arb %>%
+  mutate(SessionDate = as.Date(Created_Parsed - hours(8))) %>%
+  group_by(SessionDate) %>%
+  summarise(Dollars_Spent = sum(pmax(Realized_Cost_Clean, 0), na.rm = TRUE), .groups = "drop") %>%
+  slice_max(Dollars_Spent, n = 1, with_ties = FALSE)
+
+max_spend_day %>%
+  mutate(Dollars_Spent = dollar(Dollars_Spent)) %>%
+  kable(caption = "Day with Most Money Spent on Contracts", align = "c") %>%
+  kable_styling(full_width = FALSE)
+```
+<br>
+This is slightly misleading, because it's not like I ever moved $115k in one singular trade, but it's still a hard number for me to wrap my head around. I can't really conceptualize the fact that I've moved over $100k in one day. It's fun to think about, though!
+
+#### What about revisiting how my profitability changes based on the time of day or the day of the week?
+
+As a reminder, these are the time of day categories:
+
+- Morning → 08:00–12:59
+- Afternoon → 13:00–17:59
+- Evening → 18:00–20:59
+- Night → 21:00–00:59
+- Too-Late → 01:00–07:59
+
+```{r}
+aug_markets <- Kalshi25August_arb %>%
+  filter(!is.na(Created_Parsed), month(Created_Parsed) == 8) %>%
+  group_by(Ticker) %>%
+  summarise(
+    Market_Profit = sum(Realized_Profit_Clean, na.rm = TRUE),
+    Created_Parsed = min(Created_Parsed, na.rm = TRUE),
+    DayOfWeek = first(DayOfWeek),
+    Hour = first(Hour),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    DayOfWeek = factor(DayOfWeek, 
+                       levels = c("Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"),
+                       ordered = FALSE),
+    TimeOfDay = case_when(
+      Hour %in% 8:12              ~ "Morning",
+      Hour %in% 13:17             ~ "Afternoon",
+      Hour %in% 18:20             ~ "Evening",
+      Hour %in% c(21,22,23,0)     ~ "Night",
+      Hour %in% 1:7               ~ "Too-Late",
+      TRUE                        ~ NA_character_
+    ),
+    TimeOfDay = fct_relevel(TimeOfDay, "Morning","Afternoon","Evening","Night","Too-Late")
+  ) %>%
+  filter(!is.na(TimeOfDay), !is.na(DayOfWeek))
+
+model_profit_time     <- lm(Market_Profit ~ 0 + TimeOfDay, data = aug_markets)
+model_profit_day      <- lm(Market_Profit ~ 0 + DayOfWeek, data = aug_markets)
+model_profit_timeday  <- lm(Market_Profit ~ 0 + TimeOfDay * DayOfWeek, data = aug_markets)
+
+tidy_time     <- broom::tidy(model_profit_time)
+tidy_day      <- broom::tidy(model_profit_day)
+tidy_timeday  <- broom::tidy(model_profit_timeday)
+
+tidy_time %>%
+  mutate(term = str_remove(term, "TimeOfDay")) %>%
+  arrange(desc(estimate)) %>%
+  kable(digits = 2,
+        caption = "Effect of Time of Day on Market Profit",
+        align = "c") %>%
+  kable_styling(full_width = FALSE)
+
+tidy_day %>%
+  mutate(term = str_remove(term, "DayOfWeek")) %>%
+  arrange(desc(estimate)) %>%
+  kable(digits = 2,
+        caption = "Effect of Day of Week on Market Profit",
+        align = "c") %>%
+  kable_styling(full_width = FALSE)
+```
+<br>
+Even with a much larger sample size, it's fascinating how much more money I'm making on the weekend (and Wednesday apparently?)
+
+Also, the time of day table makes it clear that I've been making less money when trading in either extreme (i.e. "Morning" or "Too-Late").  
+
+## Final thoughts  
+
+As I've said before, this isn't the end of my trading journey - I'll continue for the forseeable future - but it feels like a good place to tie a bow on this journal. At this point, it encapsulates going from no trading experience to a (humbly) signifigant amount of trading experience and knowledge. Going from $200 to $20k. Going from blind experimentation to following rules and methods.
+
+This journal also demonstrates a nuance in the world of trading, that being **you have to learn through experience**. This is best explained by quoting a text from a trading friend of mine: 
+
+*"Nobody writes books that say what is really going on (otherwise it would be arbed away) - this industry is one of self-discovery. And it’s constant because others are on that same journey and, when they discover what you’ve discovered and arb it away, you have to find something new."*  
+
+And that's exactly what I've shown.   
+
+Looking back on earlier journal entries, there are markets and categories where I took gigantic losses as part of this self-discovery. Scrolling through my interactive barplot in June's journal entry, plenty of days involve $100+ losses. I didn't even admit it in the first journal entry, but I had actually *lost* money on Kalshi before May. Even after taking it more seriously in May, there are strategic statements I make in the first journal entry that I now completely disagree with.  
+
+As the entries carry on, though, you can see me eliminate losses and increase my profitability (e.g. the previous baseball profit distributions). You can see how I've taken the lessons learned from previous markets and losses to be profitable on new types of markets (e.g. UFC and football).   
+
+I mean, don't just take my word for it, I can use code to prove that I've gotten more consistently profitable as this journal went on.
+```{r}
+daily_profit <- Kalshi25August_arb %>%
+  mutate(SessionDate = as.Date(Created_Parsed - hours(8)),
+         MonthNum = month(SessionDate),
+         Month = month(SessionDate, label = TRUE, abbr = FALSE)) %>%
+  filter(MonthNum %in% 2:8) %>%
+  group_by(SessionDate, Month) %>%
+  summarise(Daily_Profit = sum(Realized_Profit_Clean, na.rm = TRUE),
+            .groups = "drop")
+
+profit_days_pct <- daily_profit %>%
+  group_by(Month) %>%
+  summarise(
+    Total_Days        = n(),
+    Profitable_Days   = sum(Daily_Profit > 0, na.rm = TRUE),
+    Percent_Profitable = 100 * Profitable_Days / Total_Days,
+    .groups = "drop"
+  ) %>%
+  arrange(match(Month, month.name[2:8]))
+
+profit_days_pct %>%
+  mutate(
+    Percent_Profitable = sprintf("%.1f%%", Percent_Profitable)
+  ) %>%
+  kable(
+    caption = "Percent of Profitable Days (Feb–Aug 2025)",
+    align = "c",
+    digits = 1
+  ) %>%
+  kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover", "condensed"))
+```
+<br>
+Plus, by finishing now, I can end the journal before I misclick and lose all my money.  
+
+Cheers!

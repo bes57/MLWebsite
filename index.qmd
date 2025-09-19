@@ -16,7 +16,7 @@ This website will be my coding notebook, where I explore a variety of analyses i
     -   Decision Trees
     -   Random Forest
     
-- **Trading**: This is a personal journal of my trading habits and results in 2025. The emphasis here is less on the coding and more on the results; less serious and more light-hearted. 
+- **Summer 2025 Trading Journal**: This is a personal journal of my first experience trading, with a focus on capturing the journey of improvement over the summer. In it, I use R code and personal narrative to analyze trading habits and results. The emphasis here is less on the coding and more on the outcome; less serious and more light-hearted. 
 
 - **Jazz Progression LLM**: This is a personal project of mine - building a generative model to create jazz chord progressions. In this collection, I describe the model's inspiration, build a dataset from scratch, and showcase the code I wrote (as well as updates I implemented) along the way to creating my custom Markov model. All work was done in R.
 

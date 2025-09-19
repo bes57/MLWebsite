@@ -25,7 +25,7 @@ website:
             text: Decision Trees
           - href: models/random_forest.qmd
             text: Random Forest
-      - text: Trading
+      - text: Summer 2025 Trading Journal
         menu:
           - href: Kalshi/KalshiUpToMay.qmd
             text: Trading (May)
@@ -35,6 +35,8 @@ website:
             text: Trading (July)
           - href: Kalshi/KalshiMorality.qmd
             text: Kalshi's Morality
+          - href: Kalshi/KalshiUpToAugust.qmd
+            text: Trading (August)
       - text: Jazz Progression LLM
         menu:
           - href: Jazz Generation/JazzGenerationOutline.qmd
